@@ -2,6 +2,6 @@
 /.vscode
 /.vs
 /AccrualApp/appsettings.json
-/AccrualApp/ZipFiles
+/AccrualApp/ZipFiles/*
 /AccrualApp/bin 
 /AccrualApp/obj   
