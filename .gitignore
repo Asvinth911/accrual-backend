@@ -1,3 +1,5 @@
+
 .vscode/
 .vs/
-.ACI_Portal_Backend/appsettings.json
+.AccrualApp/appsettings.json
+.AccrualApp/ZipFiles/*
