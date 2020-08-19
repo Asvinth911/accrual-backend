@@ -13,11 +13,17 @@ using System.IO.Compression;
 using System.IO;
 using Newtonsoft.Json;
 using System.Net;
+using NPOI.HSSF.UserModel;
+using NPOI.Util;
+using NPOI.XSSF.UserModel;
+using NPOI.SS.UserModel;
+using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.AspNetCore.Http;
 
 namespace AccrualApp.Controllers
 {
     [ApiController]
-    [Route("test")]
+    [Route("api/v1")]
     public class TestController : Controller
     {
         private readonly aci_databaseContext databaseContext = new aci_databaseContext();
@@ -103,6 +109,176 @@ namespace AccrualApp.Controllers
                 message = "customers....",
                 data = retVal
             });
+        }
+
+        [HttpPost]
+        [Route("vacationpto/{startdate}/{enddate}")]
+        public IActionResult getVacationPTO(String startDate, String endDate, IFormFile previousMonthFile, IFormFile currentMonthFile)
+        {
+
+
+            //TODO:
+            //Configure this values
+            // previous month file configuration
+            int previousMonthXLRowStartNum = 5;
+            int previousMonthXLEmpNameColumnNum = 1;
+            int previousMonthXLLOCColumnNum = 3;
+            int previousMonthXLDeptColumnNum = 4;
+            int previousMonthXLCashBLColumnNum = 13;
+
+
+            // current month file configuration
+            int currentMonthXLRowStartNum = 5;
+            int currentMonthXLEmpNameColumnNum = 1;
+            int currentMonthXLLOCColumnNum = 3;
+            int currentMonthXLDeptColumnNum = 4;
+            int currentMonthXLCashBLColumnNum = 13;
+
+
+
+
+            List<ISheet> previouMonthsheets = new List<ISheet>(); //Create the ISheet object to read the sheet cell values  
+            var fileExt = Path.GetExtension(previousMonthFile.FileName);
+
+
+
+            if (fileExt == ".xls")
+            {
+                var previousMonthWorkbook = new HSSFWorkbook(previousMonthFile.OpenReadStream()); //HSSWorkBook object will read the Excel 97-2000 formats  
+
+                for (int sheetIndex = 0; sheetIndex < previousMonthWorkbook.NumberOfSheets; sheetIndex++)
+                {
+                    ISheet sheet = previousMonthWorkbook.GetSheetAt(sheetIndex);
+                    previouMonthsheets.Add(previousMonthWorkbook.GetSheetAt(sheetIndex));
+                }
+            }
+            else
+            {
+                var previousMonthWorkbook = new XSSFWorkbook(previousMonthFile.OpenReadStream()); //XSSFWorkBook will read 2007 Excel format  
+                for (int sheetIndex = 0; sheetIndex < previousMonthWorkbook.NumberOfSheets; sheetIndex++)
+                {
+                    previouMonthsheets.Add(previousMonthWorkbook.GetSheetAt(sheetIndex));
+                }
+            }
+
+            Dictionary<String, Double> customerCashBLMap = new Dictionary<string, double>();
+
+            foreach (ISheet sheet in previouMonthsheets)
+            {
+                _logger.LogInformation("Curr SheetName:" + sheet.SheetName);
+
+                int rowIndex = previousMonthXLRowStartNum;
+
+                while (sheet.GetRow(rowIndex) != null)
+                {
+                    var row = sheet.GetRow(rowIndex);
+                    //all cells are empty, so is a 'blank row'
+                    if (row.Cells.All(d => d.CellType == NPOI.SS.UserModel.CellType.Blank)) break;
+
+
+                    String empName = sheet.GetRow(rowIndex).GetCell(previousMonthXLEmpNameColumnNum).StringCellValue;
+                    double cashBalance = sheet.GetRow(rowIndex).GetCell(previousMonthXLCashBLColumnNum).NumericCellValue;
+                    _logger.LogInformation("Emp Name:" + empName + " | Cash Balance:" + cashBalance);
+                    if (empName.Length == 0)
+                    {
+                        break;
+                    }
+                    customerCashBLMap.Add(empName, cashBalance);
+                    rowIndex++;
+                }
+            }
+
+            /**
+             * Current Month File Operation
+             */
+
+            List<ISheet> currentMonthsheets = new List<ISheet>(); //Create the ISheet object to read the sheet cell values  
+            fileExt = Path.GetExtension(currentMonthFile.FileName);
+
+
+
+            if (fileExt == ".xls")
+            {
+                var currentMonthWorkbook = new HSSFWorkbook(currentMonthFile.OpenReadStream()); //HSSWorkBook object will read the Excel 97-2000 formats  
+
+                for (int sheetIndex = 0; sheetIndex < currentMonthWorkbook.NumberOfSheets; sheetIndex++)
+                {
+                    currentMonthsheets.Add(currentMonthWorkbook.GetSheetAt(sheetIndex));
+                }
+            }
+            else
+            {
+                var currentMonthWorkbook = new XSSFWorkbook(currentMonthFile.OpenReadStream()); //XSSFWorkBook will read 2007 Excel format  
+                for (int sheetIndex = 0; sheetIndex < currentMonthWorkbook.NumberOfSheets; sheetIndex++)
+                {
+                    currentMonthsheets.Add(currentMonthWorkbook.GetSheetAt(sheetIndex));
+                }
+            }
+
+            //write previous month cash balance in current month file
+
+            foreach (ISheet sheet in currentMonthsheets)
+            {
+                _logger.LogInformation("Curr SheetName:" + sheet.SheetName);
+
+                int rowIndex = currentMonthXLRowStartNum;
+
+                while (sheet.GetRow(rowIndex) != null && sheet.GetRow(rowIndex).GetCell(currentMonthXLEmpNameColumnNum) != null)
+                {
+                    var row = sheet.GetRow(rowIndex);
+                    //all cells are empty, so is a 'blank row'
+                    if (row.Cells.All(d => d.CellType == NPOI.SS.UserModel.CellType.Blank)) break;
+
+
+                    String empName = sheet.GetRow(rowIndex).GetCell(currentMonthXLEmpNameColumnNum).StringCellValue;
+                    double cashBalance = sheet.GetRow(rowIndex).GetCell(currentMonthXLCashBLColumnNum).NumericCellValue;
+                    _logger.LogInformation("Emp Name:" + empName + " | Cash Balance:" + cashBalance);
+
+                    double lastMonthCashBalance = 0;
+                    if (customerCashBLMap.ContainsKey(empName))
+                    {
+                        lastMonthCashBalance = customerCashBLMap.GetValueOrDefault(empName);
+                    }
+                    //write last month balance
+                    sheet.GetRow(rowIndex).GetCell(currentMonthXLCashBLColumnNum + 1).SetCellValue(lastMonthCashBalance);
+
+                    sheet.GetRow(rowIndex).GetCell(currentMonthXLCashBLColumnNum + 2).SetCellValue(cashBalance - lastMonthCashBalance);
+
+
+                    rowIndex++;
+                }
+            }
+
+
+            HSSFWorkbook finalWorkbook = new HSSFWorkbook();
+
+            foreach (ISheet sheet in currentMonthsheets)
+            {
+
+                sheet.CopyTo(finalWorkbook, sheet.SheetName, true, true);
+            }
+
+            // Specify a name for your top-level folder.
+            string folderName = @_webHostEnvironment.ContentRootPath;
+
+            long milliseconds = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
+            string pathString = System.IO.Path.Combine(folderName, "ZipFiles", milliseconds.ToString());
+
+            //create folder
+            System.IO.Directory.CreateDirectory(pathString);
+
+            // Write Excel to disk 
+            using (var fileData = new FileStream(System.IO.Path.Combine(pathString, currentMonthFile.Name + ".xls"), FileMode.Create))
+            {
+                finalWorkbook.Write(fileData);
+            }
+
+
+            String zipFile = System.IO.Path.Combine(folderName, "ZipFiles", milliseconds.ToString() + ".zip");
+
+            return downloadZipFile(pathString, zipFile);
+
         }
 
         [HttpGet]
@@ -594,19 +770,14 @@ namespace AccrualApp.Controllers
             return File(zipStream, "application/zip");
         }
 
-        [HttpGet]
-        [Route("getpayrollaccrualfile")]
-        public void getPayrollAccrualFile()
+        [HttpPost]
+        [Route("payrollaccrualfile/{startDate}/{endDate}/{daysInWeek}/{daysInLastWeek}/{weeklyBiWeekly}")]
+        public IActionResult getPayrollAccrualFile(String startDate, String endDate, int daysInWeek, int daysInLastWeek, String weeklyBiWeekly, [FromBody] System.Text.Json.JsonElement requestData)
         {
             System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.InvariantCulture;
 
-
-            String startDate = "2020-07-26";
-            String endDate = "2020-07-31";
-            int daysInWeek = 7;
-            int daysInLastWeek = 5;
-            String weeklyBiWeekly = "weekly";
-
+            String rawJson = requestData.ToString();
+            JObject inputData = JsonConvert.DeserializeObject<JObject>(rawJson);
 
             // Specify a name for your top-level folder.
             string folderName = @_webHostEnvironment.ContentRootPath;
@@ -622,8 +793,21 @@ namespace AccrualApp.Controllers
             _logger.LogInformation("Current Path:" + pathString);
 
             Dictionary<String, List<String>> regionCustomer = new Dictionary<string, List<string>>();
-
             List<String> customerList;
+            if (inputData.Count > 0)
+            {
+                foreach (var company in inputData)
+                {
+                    customerList = new List<String>();
+                    foreach (var customer in company.Value)
+                    {
+                        customerList.Add(customer.ToString());
+                    }
+                    regionCustomer.Add(company.Key, customerList);
+                }
+            }
+
+
             if (regionCustomer.Count == 0 && weeklyBiWeekly.Contains("weekly"))
             {
                 customerList = new List<String>
@@ -867,6 +1051,12 @@ namespace AccrualApp.Controllers
 
             String consolidatedWorkBookFileName = "consolidated.xlsx";
             consolidatedWorkBook.SaveAs(System.IO.Path.Combine(pathString, consolidatedWorkBookFileName));
+
+
+            String zipFile = System.IO.Path.Combine(folderName, "ZipFiles", milliseconds.ToString() + ".zip");
+
+            return downloadZipFile(pathString, zipFile);
+
         }
 
         public static double amountToConsider(String currCustomerName, String accountName, double balance,
@@ -1330,19 +1520,17 @@ namespace AccrualApp.Controllers
         }
 
 
-        [HttpGet]
-        [Route("monthendaccrualfile")]
-        public void getMonthEndAccrualFile()
+        [HttpPost]
+        [Route("monthendaccrualfile/{startDate}/{endDate}/{previousMonthStartDate}/{previousMonthEndDate}/{previousMonthNumOfWeeks}")]
+        public IActionResult getMonthEndAccrualFile(String startDate, String endDate, String previousMonthStartDate, String previousMonthEndDate, int previousMonthNumOfWeeks, [FromBody] System.Text.Json.JsonElement requestData)
         {
             System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.InvariantCulture;
 
+            String rawJson = requestData.ToString();
+            JObject inputData = JsonConvert.DeserializeObject<JObject>(rawJson);
 
-            String startDate = "2020-07-06";
-            String endDate = "2020-07-26";
-            String previousMonthStartDate = "2020-06-01";
-            String previousMonthEndDate = "2020-06-30";
-            int previousMonthNumOfWeeks = 4;
             int daysInMonth = 31;
+
 
 
             int startDay = DateTime.ParseExact(startDate, "yyyy-MM-dd", provider).Day;
@@ -1366,6 +1554,18 @@ namespace AccrualApp.Controllers
 
             Dictionary<String, List<String>> regionCustomer = new Dictionary<string, List<string>>();
 
+            if (inputData.Count > 0)
+            {
+                foreach (var company in inputData)
+                {
+                    List<String> customerList = new List<String>();
+                    foreach (var customer in company.Value)
+                    {
+                        customerList.Add(customer.ToString());
+                    }
+                    regionCustomer.Add(company.Key, customerList);
+                }
+            }
 
             if (regionCustomer.Count == 0)
             {
@@ -1845,6 +2045,10 @@ namespace AccrualApp.Controllers
 
             String consolidatedWorkBookFileName = "consolidated.xlsx";
             consolidatedWorkBook.SaveAs(System.IO.Path.Combine(pathString, consolidatedWorkBookFileName));
+
+            String zipFile = System.IO.Path.Combine(folderName, "ZipFiles", milliseconds.ToString() + ".zip");
+
+            return downloadZipFile(pathString, zipFile);
 
         }
 

@@ -1,5 +1,7 @@
 
-.vscode/
-.vs/
-.AccrualApp/appsettings.json
-.AccrualApp/ZipFiles/*
+/.vscode
+/.vs
+/AccrualApp/appsettings.json
+/AccrualApp/ZipFiles
+/AccrualApp/bin 
+/AccrualApp/obj   

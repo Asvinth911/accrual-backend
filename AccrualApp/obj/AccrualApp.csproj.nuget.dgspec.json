@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Nivashini\\source\\repos\\AccrualApp\\AccrualApp\\AccrualApp.csproj": {}
+    "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\AccrualApp.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Nivashini\\source\\repos\\AccrualApp\\AccrualApp\\AccrualApp.csproj": {
+    "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\AccrualApp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Nivashini\\source\\repos\\AccrualApp\\AccrualApp\\AccrualApp.csproj",
+        "projectUniqueName": "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\AccrualApp.csproj",
         "projectName": "AccrualApp",
-        "projectPath": "C:\\Users\\Nivashini\\source\\repos\\AccrualApp\\AccrualApp\\AccrualApp.csproj",
+        "projectPath": "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\AccrualApp.csproj",
         "packagesPath": "C:\\Users\\Nivashini\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Nivashini\\source\\repos\\AccrualApp\\AccrualApp\\obj\\",
+        "outputPath": "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
@@ -66,6 +66,10 @@
             "Microsoft.Extensions.Configuration.AzureKeyVault": {
               "target": "Package",
               "version": "[3.1.6, )"
+            },
+            "NPOI": {
+              "target": "Package",
+              "version": "[2.5.1, )"
             },
             "System.Data.SqlClient": {
               "target": "Package",
