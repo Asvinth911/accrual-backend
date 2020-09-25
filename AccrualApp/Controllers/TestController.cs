@@ -56,20 +56,20 @@ namespace AccrualApp.Controllers
         }
 
 
-        public Dictionary<String, Dictionary<String, String>> getACICustomerList()
+        public Dictionary<String, Dictionary<int, int>> getACICustomerList()
         {
             _logger.LogInformation("Entering getACICustomerList...");
-            Dictionary<String, Dictionary<String, String>> customerList = new Dictionary<String, Dictionary<String, String>>();
-            List<Customer> customers = databaseContext.Customer.ToList();
+            Dictionary<String, Dictionary<int, int>> customerList = new Dictionary<String, Dictionary<int, int>>();
+            List<AcicustomerMaster> customers = databaseContext.AcicustomerMaster.ToList();
 
 
-            foreach (Customer customer in customers)
+            foreach (AcicustomerMaster customer in customers)
             {
-                if (!!!customerList.ContainsKey(customer.CustomerName))
+                if (!!!customerList.ContainsKey(customer.AcicustomerName))
                 {
-                    customerList.Add(customer.CustomerName, new Dictionary<string, string>());
+                    customerList.Add(customer.AcicustomerName, new Dictionary<int, int>());
                 }
-                customerList.GetValueOrDefault(customer.CustomerName).Add(customer.RegionId, customer.CustomerId);
+                customerList.GetValueOrDefault(customer.AcicustomerName).Add(customer.AcicompanyId, customer.AcicustomerId);
             }
 
             _logger.LogInformation("Exiting getACICustomerList\n...");
@@ -115,7 +115,10 @@ namespace AccrualApp.Controllers
         [Route("vacationpto/{startdate}/{enddate}")]
         public IActionResult getVacationPTO(String startDate, String endDate, IFormFile previousMonthFile, IFormFile currentMonthFile)
         {
+            System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.InvariantCulture;
 
+            DateTime startDateObj = DateTime.ParseExact(startDate, "yyyy-MM-dd", provider);
+            DateTime endDateObj = DateTime.ParseExact(endDate, "yyyy-MM-dd", provider);
 
             //TODO:
             //Configure this values
@@ -136,6 +139,38 @@ namespace AccrualApp.Controllers
 
 
 
+            //allowed compny
+            String[] allowedCompanyList = new String[] { "ACI", "CA", "MW", "SE", "SW" };
+
+            // customer mapping
+            // eg. ACCOUNTING:Accounting OH
+
+            Dictionary<String, String> customerMapping = new Dictionary<string, string>();
+            //adv con | parent
+            customerMapping.Add("ACCOUNTING", "Accounting OH");
+            customerMapping.Add("IT/MAPPING", "IT/Mapping/Admin");
+            customerMapping.Add("MANAGEMENT", "Management OH");
+
+            //california
+            customerMapping.Add("CIPS", "CIPS Marketing Group, LLC");
+            customerMapping.Add("CA O/H", "ACI Last Mile CA LLC");
+
+            //southeast
+            customerMapping.Add("ATLANTA", "Cox-Buyers Edge");
+            customerMapping.Add("PALM BEACH", "Palm Beach Post");
+
+            //southwest
+            customerMapping.Add("DALLAS", "Dallas Morning News, Inc.");
+            customerMapping.Add("HOUSTON", "Houston Chronicle Media Group");
+            customerMapping.Add("SAN ANTONIO", "San Antonio Express-News");
+
+            //midwest
+            customerMapping.Add("DAYTON", "Cox Media Group Ohio");
+            customerMapping.Add("MW O/H", "ACI Last Mile Midwest LLC");
+            customerMapping.Add("ST. LOUIS", "St Louis Post-Dispatch");
+
+
+
 
             List<ISheet> previouMonthsheets = new List<ISheet>(); //Create the ISheet object to read the sheet cell values  
             var fileExt = Path.GetExtension(previousMonthFile.FileName);
@@ -149,7 +184,10 @@ namespace AccrualApp.Controllers
                 for (int sheetIndex = 0; sheetIndex < previousMonthWorkbook.NumberOfSheets; sheetIndex++)
                 {
                     ISheet sheet = previousMonthWorkbook.GetSheetAt(sheetIndex);
-                    previouMonthsheets.Add(previousMonthWorkbook.GetSheetAt(sheetIndex));
+                    if (allowedCompanyList.Contains(sheet.SheetName))
+                    {
+                        previouMonthsheets.Add(sheet);
+                    }
                 }
             }
             else
@@ -157,11 +195,15 @@ namespace AccrualApp.Controllers
                 var previousMonthWorkbook = new XSSFWorkbook(previousMonthFile.OpenReadStream()); //XSSFWorkBook will read 2007 Excel format  
                 for (int sheetIndex = 0; sheetIndex < previousMonthWorkbook.NumberOfSheets; sheetIndex++)
                 {
-                    previouMonthsheets.Add(previousMonthWorkbook.GetSheetAt(sheetIndex));
+                    ISheet sheet = previousMonthWorkbook.GetSheetAt(sheetIndex);
+                    if (allowedCompanyList.Contains(sheet.SheetName))
+                    {
+                        previouMonthsheets.Add(sheet);
+                    }
                 }
             }
 
-            Dictionary<String, Double> customerCashBLMap = new Dictionary<string, double>();
+            Dictionary<String, Double> empCashBLMap = new Dictionary<string, double>();
 
             foreach (ISheet sheet in previouMonthsheets)
             {
@@ -183,7 +225,7 @@ namespace AccrualApp.Controllers
                     {
                         break;
                     }
-                    customerCashBLMap.Add(empName, cashBalance);
+                    empCashBLMap.Add(empName, cashBalance);
                     rowIndex++;
                 }
             }
@@ -221,9 +263,15 @@ namespace AccrualApp.Controllers
             {
                 _logger.LogInformation("Curr SheetName:" + sheet.SheetName);
 
+                Dictionary<String, Double> locationCashBLMap = new Dictionary<string, double>();
+
                 int rowIndex = currentMonthXLRowStartNum;
 
-                while (sheet.GetRow(rowIndex) != null && sheet.GetRow(rowIndex).GetCell(currentMonthXLEmpNameColumnNum) != null)
+                double currentMonthGLBalance = 0;
+                double previousMonthGLBalance = 0;
+                double diff = 0;
+
+                while (allowedCompanyList.Contains(sheet.SheetName) && sheet.GetRow(rowIndex) != null && sheet.GetRow(rowIndex).GetCell(currentMonthXLEmpNameColumnNum) != null)
                 {
                     var row = sheet.GetRow(rowIndex);
                     //all cells are empty, so is a 'blank row'
@@ -232,21 +280,65 @@ namespace AccrualApp.Controllers
 
                     String empName = sheet.GetRow(rowIndex).GetCell(currentMonthXLEmpNameColumnNum).StringCellValue;
                     double cashBalance = sheet.GetRow(rowIndex).GetCell(currentMonthXLCashBLColumnNum).NumericCellValue;
+                    String location = sheet.GetRow(rowIndex).GetCell(sheet.SheetName == "ACI" ? currentMonthXLDeptColumnNum : currentMonthXLLOCColumnNum).StringCellValue;
+
                     _logger.LogInformation("Emp Name:" + empName + " | Cash Balance:" + cashBalance);
 
                     double lastMonthCashBalance = 0;
-                    if (customerCashBLMap.ContainsKey(empName))
+                    if (empCashBLMap.ContainsKey(empName))
                     {
-                        lastMonthCashBalance = customerCashBLMap.GetValueOrDefault(empName);
+                        lastMonthCashBalance = empCashBLMap.GetValueOrDefault(empName);
                     }
+
+                    diff += cashBalance - lastMonthCashBalance;
+                    currentMonthGLBalance += cashBalance;
+                    previousMonthGLBalance += lastMonthCashBalance;
+
                     //write last month balance
                     sheet.GetRow(rowIndex).GetCell(currentMonthXLCashBLColumnNum + 1).SetCellValue(lastMonthCashBalance);
 
                     sheet.GetRow(rowIndex).GetCell(currentMonthXLCashBLColumnNum + 2).SetCellValue(cashBalance - lastMonthCashBalance);
 
 
+                    //add current month location diff to hashmap
+                    if (!!!locationCashBLMap.ContainsKey(location))
+                    {
+                        locationCashBLMap.Add(location, 0);
+                    }
+                    locationCashBLMap[location] = locationCashBLMap.GetValueOrDefault(location) + (cashBalance - lastMonthCashBalance);
+
+
                     rowIndex++;
                 }
+
+                //write total diff
+                sheet.GetRow(rowIndex++).GetCell(currentMonthXLCashBLColumnNum + 2).SetCellValue(diff);
+
+
+                //clear up 15 rows
+                int tempRowIndex = rowIndex + 15;
+                while (tempRowIndex > rowIndex)
+                {
+                    if (sheet.GetRow(tempRowIndex) != null)
+                        sheet.RemoveRow(sheet.GetRow(tempRowIndex));
+                    tempRowIndex--;
+                }
+
+                int monthLevelRowIndex = rowIndex + 2;
+                sheet.CreateRow(monthLevelRowIndex++).CreateCell(currentMonthXLCashBLColumnNum - 2).SetCellValue("Output:");
+
+                sheet.CreateRow(monthLevelRowIndex).CreateCell(currentMonthXLCashBLColumnNum - 2).SetCellValue(startDateObj.ToString("MMMM") + " Balance");
+                sheet.CreateRow(monthLevelRowIndex++).CreateCell(currentMonthXLCashBLColumnNum - 1).SetCellValue(currentMonthGLBalance);
+
+                sheet.CreateRow(monthLevelRowIndex).CreateCell(currentMonthXLCashBLColumnNum - 2).SetCellValue("GL Balance");
+                sheet.CreateRow(monthLevelRowIndex++).CreateCell(currentMonthXLCashBLColumnNum - 1).SetCellValue(0);
+
+                sheet.CreateRow(monthLevelRowIndex).CreateCell(currentMonthXLCashBLColumnNum - 2).SetCellValue("Adjustments");
+                sheet.CreateRow(monthLevelRowIndex++).CreateCell(currentMonthXLCashBLColumnNum - 1).SetCellValue(0);
+
+
+                monthLevelRowIndex = rowIndex + 2;
+                sheet.CreateRow(monthLevelRowIndex++).CreateCell(currentMonthXLCashBLColumnNum - 2).SetCellValue("Vacation Used");
             }
 
 
@@ -303,7 +395,7 @@ namespace AccrualApp.Controllers
             _logger.LogInformation("Current Path:" + pathString);
 
             String accountNum = "5000";
-            String transactionType = "bill";
+            String[] transactionType = new string[] { "bill", "credit" };
             String companyId = "california";
             List<String> customerList = new List<String>
                 {
@@ -551,7 +643,7 @@ namespace AccrualApp.Controllers
             _logger.LogInformation("Current Path:" + pathString);
 
             String accountNum = "6725";
-            String transactionType = "bill";
+            String[] transactionType = new string[] { "bill" };
             List<String> customerList = new List<String>
                 {
                     "california",
@@ -1121,8 +1213,9 @@ namespace AccrualApp.Controllers
 
             _logger.LogInformation("Current Path:" + pathString);
 
+            Dictionary<String, int> companyData = getACICompanyList();
 
-            Dictionary<String, Dictionary<String, String>> customerData = getACICustomerList();
+            Dictionary<String, Dictionary<int, int>> customerData = getACICustomerList();
 
             Dictionary<String, List<String>> regionCustomer = new Dictionary<string, List<string>>();
 
@@ -1218,6 +1311,8 @@ namespace AccrualApp.Controllers
 
                 _logger.LogInformation("Company:" + currRegion);
 
+                finalData.Add(currRegion, new Dictionary<string, List<double>>());
+
                 foreach (String customer in customerList)
                 {
 
@@ -1230,6 +1325,11 @@ namespace AccrualApp.Controllers
                     var workbook = new XLWorkbook();
 
                     _logger.LogInformation("Customer:" + customer);
+
+
+                    finalData.GetValueOrDefault(currRegion).Add(customer, new List<double>());
+
+
                     String[] accountName = new string[] {"Distribution Contract Revenue",
                             "Delivery Contract Expense"};
                     foreach (String account in accountName)
@@ -1492,13 +1592,9 @@ namespace AccrualApp.Controllers
                         currentRow.Cell(columnCount4ConsolidatedSheet++).SetValue(newMethodValue);
 
 
-
-
-
+                        finalData.GetValueOrDefault(currRegion).GetValueOrDefault(customer).Add(newMethodValue);
 
                     }//end of accountName loop
-
-
 
                     String currFileName = customer;
                     currFileName = currFileName.Replace("/", "_") + ".xlsx";
@@ -1509,6 +1605,72 @@ namespace AccrualApp.Controllers
 
 
             }//end of company loop
+
+            var summarySheet = consolidatedWorkBook.AddWorksheet("Summary");
+            int rowNum = 2;
+            foreach (KeyValuePair<String, Dictionary<String, List<Double>>> regionIter in finalData)
+            {
+                foreach (KeyValuePair<String, List<Double>> customerIter in regionIter.Value)
+                {
+
+                    int cellNum = 1;
+                    var currentRow = summarySheet.Row(rowNum++);
+                    currentRow.Cell(cellNum++).SetValue(regionIter.Key);
+                    currentRow.Cell(cellNum++).SetValue(companyData.GetValueOrDefault(regionIter.Key));
+                    currentRow.Cell(cellNum++).SetValue(customerData.GetValueOrDefault(customerIter.Key).GetValueOrDefault(companyData.GetValueOrDefault(regionIter.Key)));
+                    currentRow.Cell(cellNum++).SetValue("Unbilled Receivables");// 40
+                    currentRow.Cell(cellNum++).SetValue(40);
+                    currentRow.Cell(cellNum++).SetValue(weekEndDate);
+                    currentRow.Cell(cellNum++).SetValue(customerIter.Value[0]);
+                    cellNum++;
+                    currentRow.Cell(cellNum++).SetValue("journal");
+                    currentRow.Cell(cellNum++).SetValue("Calculated Entry");
+
+
+                    cellNum = 1;
+                    currentRow = summarySheet.Row(rowNum++);
+                    currentRow.Cell(cellNum++).SetValue(regionIter.Key);
+                    currentRow.Cell(cellNum++).SetValue(companyData.GetValueOrDefault(regionIter.Key));
+                    currentRow.Cell(cellNum++).SetValue(customerData.GetValueOrDefault(customerIter.Key).GetValueOrDefault(companyData.GetValueOrDefault(regionIter.Key)));
+                    currentRow.Cell(cellNum++).SetValue("Distribution Contract Revenue");// 40
+                    currentRow.Cell(cellNum++).SetValue(172);
+                    currentRow.Cell(cellNum++).SetValue(weekEndDate);
+                    cellNum++;
+                    currentRow.Cell(cellNum++).SetValue(customerIter.Value[0]);
+                    currentRow.Cell(cellNum++).SetValue("invoice");
+                    currentRow.Cell(cellNum++).SetValue("Calculated Entry");
+
+
+                    cellNum = 1;
+                    currentRow = summarySheet.Row(rowNum++);
+                    currentRow.Cell(cellNum++).SetValue(regionIter.Key);
+                    currentRow.Cell(cellNum++).SetValue(companyData.GetValueOrDefault(regionIter.Key));
+                    currentRow.Cell(cellNum++).SetValue(customerData.GetValueOrDefault(customerIter.Key).GetValueOrDefault(companyData.GetValueOrDefault(regionIter.Key)));
+                    currentRow.Cell(cellNum++).SetValue("Delivery Contract Expense  ");// 40
+                    currentRow.Cell(cellNum++).SetValue(202);
+                    currentRow.Cell(cellNum++).SetValue(weekEndDate);
+                    currentRow.Cell(cellNum++).SetValue(customerIter.Value[1]);
+                    cellNum++;
+                    currentRow.Cell(cellNum++).SetValue("bill");
+                    currentRow.Cell(cellNum++).SetValue("Calculated Entry");
+
+
+                    cellNum = 1;
+                    currentRow = summarySheet.Row(rowNum++);
+                    currentRow.Cell(cellNum++).SetValue(regionIter.Key);
+                    currentRow.Cell(cellNum++).SetValue(companyData.GetValueOrDefault(regionIter.Key));
+                    currentRow.Cell(cellNum++).SetValue(customerData.GetValueOrDefault(customerIter.Key).GetValueOrDefault(companyData.GetValueOrDefault(regionIter.Key)));
+                    currentRow.Cell(cellNum++).SetValue("Independent Contractor Payable");// 40
+                    currentRow.Cell(cellNum++).SetValue(98);
+                    currentRow.Cell(cellNum++).SetValue(weekEndDate);
+                    cellNum++;
+                    currentRow.Cell(cellNum++).SetValue(customerIter.Value[1]);
+                    currentRow.Cell(cellNum++).SetValue("journal");
+                    currentRow.Cell(cellNum++).SetValue("Calculated Entry");
+
+
+                }//end of custIter
+            }//end of regionIter
 
             String consolidatedWorkBookFileName = "consolidated.xlsx";
             consolidatedWorkBook.SaveAs(System.IO.Path.Combine(pathString, consolidatedWorkBookFileName));
@@ -1550,7 +1712,7 @@ namespace AccrualApp.Controllers
             _logger.LogInformation("Current Path:" + pathString);
 
 
-            Dictionary<String, Dictionary<String, String>> customerData = getACICustomerList();
+
 
             Dictionary<String, List<String>> regionCustomer = new Dictionary<string, List<string>>();
 
@@ -2375,14 +2537,14 @@ namespace AccrualApp.Controllers
         }
 
 
-        public JArray getHoyLatData(String accountNum, String companyId, String customerName, String transactionType, DateTime startDate, DateTime endDate)
+        public JArray getHoyLatData(String accountNum, String companyId, String customerName, String[] transactionType, DateTime startDate, DateTime endDate)
         {
             JArray transactionData = new JArray() as dynamic;
 
             using (aci_databaseContext db = new aci_databaseContext())
             {
-                var data = (from transaction in db.Transaction
-                            where transaction.TransactionDate >= startDate && transaction.TransactionDate <= endDate && transaction.RegionId == companyId && transaction.Type == transactionType
+                var data = (from transaction in db.TransactionTmp
+                            where transaction.TransactionDate >= startDate && transaction.TransactionDate <= endDate && transaction.RegionId == companyId && transactionType.Contains(transaction.Type)
                             join account in db.Account
                             on transaction.AccountId equals account.AccountId
                             where accountNum == account.AccountNum
