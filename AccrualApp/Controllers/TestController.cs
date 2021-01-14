@@ -19,6 +19,8 @@ using NPOI.XSSF.UserModel;
 using NPOI.SS.UserModel;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Http;
+using System.Globalization;
+using AccrualApp.Constants;
 
 namespace AccrualApp.Controllers
 {
@@ -56,6 +58,8 @@ namespace AccrualApp.Controllers
         }
 
 
+
+
         public Dictionary<String, Dictionary<int, int>> getACICustomerList()
         {
             _logger.LogInformation("Entering getACICustomerList...");
@@ -75,6 +79,20 @@ namespace AccrualApp.Controllers
             _logger.LogInformation("Exiting getACICustomerList\n...");
             return customerList;
         }
+
+        public Dictionary<int, String> getLineitems() {
+
+            Dictionary<int, String> lineItems = new Dictionary<int, String>();
+
+            List<AciitemMaster> items = databaseContext.AciitemMaster.ToList();
+
+            foreach (AciitemMaster line in items)
+            {
+                lineItems.Add(line.AcilineItemId, line.AcilineItemName);
+            }
+            return lineItems;
+        }
+
 
 
         [HttpGet]
@@ -100,7 +118,7 @@ namespace AccrualApp.Controllers
                     retVal.GetValueOrDefault(d.companyId).Add(d.customerName);
                 }
             }
-
+            getLineitems();
             _logger.LogTrace("Exiting getCustomerList\n...");
             return Ok(new
             {
@@ -109,7 +127,198 @@ namespace AccrualApp.Controllers
                 message = "customers....",
                 data = retVal
             });
+            
         }
+
+        //api for creating query for revenue and cogs in provisional p&l
+        [HttpPost]
+        [Route("mapping/{date}")]
+        public IActionResult writeIds(String date, IFormFile mappingFile)
+        {
+            System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.InvariantCulture;
+
+            DateTime entryDate = DateTime.ParseExact(date, "yyyy-MM-dd", provider);
+            // Specify a name for your top-level folder.
+            string folderName = @_webHostEnvironment.ContentRootPath;
+
+            long milliseconds = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
+            string pathString = System.IO.Path.Combine(folderName, "ZipFiles", milliseconds.ToString());
+
+            //create folder
+            System.IO.Directory.CreateDirectory(pathString);
+
+            _logger.LogInformation("Current Path:" + pathString);
+
+            var mappingWorkbook = new XSSFWorkbook(mappingFile.OpenReadStream());
+            Dictionary<String, int> retValcomp = new Dictionary<string, int>();
+            Dictionary<String, int> retValcust = new Dictionary<string, int>();
+            Dictionary<int, int> mappedVal = new Dictionary<int, int>();
+            Dictionary<int, int> tmpVal = new Dictionary<int, int>();
+            List<string> value = new List<string>();
+            List<int> negValue = new List<int>();
+
+            Mapping map = new Mapping();
+            retValcomp = map.companyId();
+            retValcust = map.customerId();
+            int cmpTemp = 0;
+
+            ISheet sheet = mappingWorkbook.GetSheetAt(0);
+            int start = 3;
+
+            for (int row = start; row <= 155; row++)
+            {
+                if (sheet.GetRow(row).GetCell(0).ToString() == "3. Gross Profit")
+                {
+                    break;
+                }
+
+                if (sheet.GetRow(row).GetCell(0).ToString() == "2. COGS")
+                {
+                    ++row;
+                    tmpVal = mappedVal;
+                    mappedVal = new Dictionary<int, int>();
+
+                }
+                if (sheet.GetRow(row).GetCell(0).ToString() == "Advertising Consultants")
+                {
+                    cmpTemp = retValcomp.GetValueOrDefault("Advertising Consultants");
+
+                    ++row;
+                }
+                if (sheet.GetRow(row).GetCell(0).ToString() == "California")
+                {
+                    cmpTemp = retValcomp.GetValueOrDefault("California");
+
+                    ++row;
+                }
+                else if (sheet.GetRow(row).GetCell(0).ToString() == "Last Mile Network")
+                {
+                    cmpTemp = retValcomp.GetValueOrDefault("Last Mile Network");
+
+                    ++row;
+                }
+                else if (sheet.GetRow(row).GetCell(0).ToString() == "MDNET")
+                {
+                    cmpTemp = retValcomp.GetValueOrDefault("MDNET");
+
+                    ++row;
+                }
+                else if (sheet.GetRow(row).GetCell(0).ToString() == "Midwest")
+                {
+                    cmpTemp = retValcomp.GetValueOrDefault("Midwest");
+
+                    ++row;
+                }
+                else if (sheet.GetRow(row).GetCell(0).ToString() == "Southeast")
+                {
+                    cmpTemp = retValcomp.GetValueOrDefault("Southeast");
+
+                    ++row;
+                }
+                else if (sheet.GetRow(row).GetCell(0).ToString() == "Southwest")
+                {
+                    cmpTemp = retValcomp.GetValueOrDefault("Southwest");
+
+                    ++row;
+                }
+                Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                mappedVal.Add(retValcust.GetValueOrDefault(sheet.GetRow(row).GetCell(0).ToString()), cmpTemp);
+                String temp = sheet.GetRow(row).GetCell(1).ToString();
+                //int temp_tr = Convert.ToInt32(temp);
+                value.Add(temp);
+                //negValue.Add(temp_tr);
+
+            }
+            var workbook = new XLWorkbook();
+            //create sheet
+            var currentCustomerWorkSheet = workbook.AddWorksheet("Mapping");
+
+            int i = 1;
+            int j = 0;
+            foreach (var keyval in tmpVal)
+            {
+
+                for (int repeat = 1; repeat <= 2; repeat++)
+                {
+                    var currentRow = currentCustomerWorkSheet.Row(i);
+                    if (repeat == 1)
+                    {
+                        currentRow.Cell(1).SetValue(keyval.Value);
+                        currentRow.Cell(2).SetValue(keyval.Key);
+                        currentRow.Cell(3).SetValue(40);
+                        currentRow.Cell(4).SetValue(entryDate);
+                        currentRow.Cell(5).SetValue(Convert.ToDouble(value.ElementAt(j)) * -1);
+                        currentRow.Cell(6).SetValue("Accrual");
+                        currentRow.Cell(7).SetValue("Mirror entry");
+
+
+                    }
+                    if (repeat == 2)
+                    {
+                        currentRow.Cell(1).SetValue(keyval.Value);
+                        currentRow.Cell(2).SetValue(keyval.Key);
+                        currentRow.Cell(3).SetValue(172);
+                        currentRow.Cell(4).SetValue(entryDate);
+                        currentRow.Cell(5).SetValue(value.ElementAt(j));
+                        currentRow.Cell(6).SetValue("Accrual");
+                        currentRow.Cell(7).SetValue("Mirror entry");
+                        j++;
+                    }
+
+                    i++;
+                }
+
+            }
+
+            foreach (var keyval in mappedVal)
+            {
+                //for both line items 
+                for (int repeat = 1; repeat <= 2; repeat++)
+                {
+                    var currentRow = currentCustomerWorkSheet.Row(i);
+                    if (repeat == 1)
+                    {
+
+                        currentRow.Cell(1).SetValue(keyval.Value);
+                        currentRow.Cell(2).SetValue(keyval.Key);
+                        currentRow.Cell(3).SetValue(202);
+                        currentRow.Cell(4).SetValue(entryDate);
+                        currentRow.Cell(5).SetValue(Convert.ToDouble(value.ElementAt(j)) * -1);
+                        currentRow.Cell(6).SetValue("Accrual");
+                        currentRow.Cell(7).SetValue("Mirror entry");
+
+
+                    }
+                    if (repeat == 2)
+                    {
+                        currentRow.Cell(1).SetValue(keyval.Value);
+                        currentRow.Cell(2).SetValue(keyval.Key);
+                        currentRow.Cell(3).SetValue(98);
+                        currentRow.Cell(4).SetValue(entryDate);
+                        currentRow.Cell(5).SetValue(value.ElementAt(j));
+                        currentRow.Cell(6).SetValue("Accrual");
+                        currentRow.Cell(7).SetValue("Mirror entry");
+                        j++;
+                    }
+
+                    i++;
+                }
+
+            }
+
+
+            String currFileName = "Mapping_" + milliseconds;
+            currFileName = currFileName.Replace("/", "_") + ".xlsx";
+            _logger.LogInformation("Curr File Name:" + currFileName);
+            //write excel file to filesystem
+            workbook.SaveAs(System.IO.Path.Combine(pathString, currFileName));
+
+            String zipFile = System.IO.Path.Combine(folderName, "ZipFiles", milliseconds.ToString() + ".zip");
+            return downloadZipFile(pathString, zipFile);
+        }
+
 
         [HttpPost]
         [Route("vacationpto/{startdate}/{enddate}")]
@@ -374,6 +583,236 @@ namespace AccrualApp.Controllers
         }
 
         [HttpGet]
+        [Route("quadmagazines/{startdate}/{enddate}")]
+
+        public IActionResult getQuadMagazineFile(string startDate, String endDate)
+        {
+            System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.InvariantCulture;
+
+            DateTime startDateObj = DateTime.ParseExact(startDate, "yyyy-MM-dd", provider);
+            DateTime endDateObj = DateTime.ParseExact(endDate, "yyyy-MM-dd", provider);
+
+            // Specify a name for your top-level folder.
+            string folderName = @_webHostEnvironment.ContentRootPath;
+
+            long milliseconds = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
+            string pathString = System.IO.Path.Combine(folderName, "ZipFiles", milliseconds.ToString());
+
+            //create folder
+            System.IO.Directory.CreateDirectory(pathString);
+
+            _logger.LogInformation("Current Path:" + pathString);
+
+            String accountNum = "4000";
+            String[] transactionType = new string[] { "invoice", "journal" };
+            String companyId = "lastmilenetwork";
+
+            List<String> customerList = new List<String>
+                {
+                    "Quad Logistics Holdings, LLC (Magazines)",      
+                };
+
+            Dictionary<String, Dictionary<String, String>> assignMemo = new Dictionary<string, Dictionary<string, string>>();
+
+            Dictionary<String, String> currCompanyMemo = new Dictionary<string, string>();
+            currCompanyMemo.Add("Santa Barbara", "Santa Barbara");
+            currCompanyMemo.Add("Ventura", "Ventura");
+            currCompanyMemo.Add("San Bernardino", "San Bernardino");
+            currCompanyMemo.Add("OCR", "Orange County");
+            currCompanyMemo.Add("San Fernando", "San Fernando");
+            currCompanyMemo.Add("South Bay", "South Bay");
+            currCompanyMemo.Add("San Diego", "San Diego");
+
+            assignMemo.Add("Quad Logistics Holdings, LLC (Magazines)", currCompanyMemo);
+
+            foreach (String customer in customerList)
+            {
+                _logger.LogInformation("Curr Customer:" + customer);
+
+                var workbook = new XLWorkbook();
+                //create sheet
+                var currentCustomerWorkSheet = workbook.AddWorksheet("Data");
+
+                //get data
+                JArray transactionData = getMagazineData(accountNum, companyId, customer, transactionType, startDateObj, endDateObj);
+
+                foreach (JObject transaction in transactionData)
+                {
+                    String week = transaction.Value<string>("week");
+                    String type = transaction.Value<string>("type");
+                    String memo = transaction.Value<string>("memo");
+                    double balance = transaction.Value<double>("balance");
+                    Console.WriteLine(week + " " + type + " " + memo + " " + balance);
+                }
+
+                    //add headers
+                    int columnCount = 1;
+                int rowCount = 1;
+                String[] columnList = new String[] { "type", "account_name", "memo", "week", "balance" };
+                var currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                foreach (String column in columnList)
+                {
+                    currentRow.Cell(columnCount++).SetValue(column);
+                }
+
+                double totalGlValue = 0;
+
+                Dictionary<String, Dictionary<String, Double>> transWeekMemo = new Dictionary<string, Dictionary<string, double>>();
+
+                Dictionary<String, Double> weeklyBalance = new Dictionary<string, double>();
+
+
+
+                //write data to excel
+                foreach (JObject transaction in transactionData)
+                {
+                    String week = transaction.Value<string>("week");
+                    String type = transaction.Value<string>("type");
+                    String memo = transaction.Value<string>("memo");
+                    double balance = transaction.Value<double>("balance");
+
+                    if (!!!transWeekMemo.ContainsKey(week))
+                    {
+                        transWeekMemo.Add(week, new Dictionary<string, double>());
+                        transWeekMemo.GetValueOrDefault(week).Add("OTHERS", 0);
+                        rowCount++;
+                    }
+
+                    if (!!!weeklyBalance.ContainsKey(week))
+                    {
+                        weeklyBalance.Add(week, 0);
+                    }
+
+                    weeklyBalance[week] = weeklyBalance.GetValueOrDefault(week) + balance;
+
+                    Boolean foundMemo = false;
+
+                    foreach (KeyValuePair<String, String> assignMemoIter in assignMemo.GetValueOrDefault(customer))
+                    {
+                        if (foundMemo)
+                        {
+                            break;
+                        }
+
+                        if (!!!transWeekMemo.GetValueOrDefault(week).ContainsKey(assignMemoIter.Key))
+                        {
+                            transWeekMemo.GetValueOrDefault(week).Add(assignMemoIter.Key, 0);
+                        }
+
+                        String[] currAssignMemoList = assignMemoIter.Value.Split(":|:");
+
+                        foreach (String m in currAssignMemoList)
+                        {
+                            if (memo.Contains(m))
+                            {
+                                foundMemo = true;
+                                transWeekMemo[week][assignMemoIter.Key] = balance + transWeekMemo.GetValueOrDefault(week).GetValueOrDefault(assignMemoIter.Key);
+                                break;
+                            }
+                        }
+                    }//end loop for assignMemoIter
+
+                    if (!!!foundMemo)
+                    {//if not add it to others
+                        transWeekMemo[week]["OTHERS"] = transWeekMemo.GetValueOrDefault(week).GetValueOrDefault("OTHERS") + balance;
+                    }
+
+
+
+                    currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                    columnCount = 1;
+                    foreach (String column in columnList)
+                    {
+                        var currCell = currentRow.Cell(columnCount++);
+
+                        switch (column)
+                        {
+                            case "balance":
+                                currCell.SetValue(balance);
+                                break;
+                            default:
+                                currCell.SetValue(transaction.Value<string>(column));
+                                break;
+                        }
+                    }
+                    totalGlValue = totalGlValue + balance;
+
+                }
+
+                //create sheet
+                currentCustomerWorkSheet = workbook.AddWorksheet("Reclass");
+
+                rowCount = 1;
+                columnCount = 2;
+                currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                foreach (KeyValuePair<String, Double> week in weeklyBalance)
+                {
+                    //currentRow.Cell(columnCount++).SetValue(DateTime.Parse(week.Key).ToString("yyyy-MM-dd"));
+                    currentRow.Cell(columnCount++).SetValue(DateTime.ParseExact(week.Key, "MM/dd/yyyy HH:mm:ss", CultureInfo.InvariantCulture));
+                }
+
+                foreach (KeyValuePair<String, String> assignMemoIter in assignMemo.GetValueOrDefault(customer))
+                {
+                    currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                    columnCount = 1;
+                    currentRow.Cell(columnCount).SetValue(assignMemoIter.Key);
+                }
+                currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                columnCount = 1;
+                currentRow.Cell(columnCount).SetValue("Total");
+
+                currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                columnCount = 1;
+                currentRow.Cell(columnCount).SetValue("Weekly Balance");
+
+                currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                columnCount = 1;
+                currentRow.Cell(columnCount).SetValue("Matching");
+
+                columnCount = 2;
+                foreach (KeyValuePair<String, Double> week in weeklyBalance)
+                {
+                    double currWeekAmount = 0;
+                    rowCount = 2;
+                    foreach (KeyValuePair<String, String> assignMemoIter in assignMemo.GetValueOrDefault(customer))
+                    {
+                        double value = transWeekMemo.GetValueOrDefault(week.Key).GetValueOrDefault(assignMemoIter.Key);
+                        currWeekAmount += value;
+                        currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                        currentRow.Cell(columnCount).SetValue(value);
+                    }
+                    currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                    currentRow.Cell(columnCount).SetValue(currWeekAmount);
+
+                    currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                    currentRow.Cell(columnCount).SetValue(week.Value);
+
+                    currentRow = currentCustomerWorkSheet.Row(rowCount++);
+                    currentRow.Cell(columnCount).SetValue(week.Value == currWeekAmount);
+
+                    columnCount++;
+
+                    if (week.Value == currWeekAmount)
+                    {
+                        _logger.LogInformation("Week is matching !!!");
+                    }
+                }
+
+                String currFileName = customer;
+                currFileName = currFileName.Replace("/", "_") + ".xlsx";
+                _logger.LogInformation("Curr File Name:" + currFileName);
+                //write excel file to filesystem
+                workbook.SaveAs(System.IO.Path.Combine(pathString, currFileName));
+
+            }
+            String zipFile = System.IO.Path.Combine(folderName, "ZipFiles", milliseconds.ToString() + ".zip");
+
+            return downloadZipFile(pathString, zipFile);
+        }
+
+
+        [HttpGet]
         [Route("hoylatreclassfile/{startdate}/{enddate}")]
         public IActionResult getHoyLatReclassFile(String startDate, String endDate)
         {
@@ -422,6 +861,7 @@ namespace AccrualApp.Controllers
             currCompanyMemo.Add("RIVERSIDE", "Riverside");
             currCompanyMemo.Add("SOUTH BAY DIGS", "Digs");
             currCompanyMemo.Add("SAN PEDRO TODAY", "San Pedro");
+            currCompanyMemo.Add("CHINO CHAMPION", "Chino Champion");
             currCompanyMemo.Add("OTHERS", "_________________________________");
 
             assignMemo.Add("LA Times - CIPS", currCompanyMemo);
@@ -555,7 +995,8 @@ namespace AccrualApp.Controllers
                 currentRow = currentCustomerWorkSheet.Row(rowCount++);
                 foreach (KeyValuePair<String, Double> week in weeklyBalance)
                 {
-                    currentRow.Cell(columnCount++).SetValue(DateTime.Parse(week.Key).ToString("yyyy-MM-dd"));
+                    //currentRow.Cell(columnCount++).SetValue(DateTime.Parse(week.Key).ToString("yyyy-MM-dd"));
+                    currentRow.Cell(columnCount++).SetValue(DateTime.ParseExact(week.Key, "MM/dd/yyyy HH:mm:ss", CultureInfo.InvariantCulture));
                 }
 
                 foreach (KeyValuePair<String, String> assignMemoIter in assignMemo.GetValueOrDefault(customer))
@@ -900,7 +1341,20 @@ namespace AccrualApp.Controllers
             }
 
 
-            if (regionCustomer.Count == 0 && weeklyBiWeekly.Contains("weekly"))
+            if (regionCustomer.Count == 0 && weeklyBiWeekly.Contains("biweekly"))
+                {
+                    customerList = new List<String>();
+                    customerList.Add("Last Mile Network, LLC");
+                    regionCustomer.Add("lastmilenetwork", customerList);
+
+                    customerList = new List<String>
+                {
+                    "Cox Media Group Ohio",
+                    "St Louis Post-Dispatch"
+                };
+                    regionCustomer.Add("midwest", customerList);
+                }   
+            else if(regionCustomer.Count == 0 && weeklyBiWeekly.Contains("weekly"))
             {
                 customerList = new List<String>
                 {
@@ -939,19 +1393,6 @@ namespace AccrualApp.Controllers
 
                 customerList = new List<String>();
                 customerList.Add("ACI Last Mile Midwest LLC");
-                regionCustomer.Add("midwest", customerList);
-            }
-            else if (regionCustomer.Count == 0 && weeklyBiWeekly.Contains("biweekly"))
-            {
-                customerList = new List<String>();
-                customerList.Add("Last Mile Network, LLC");
-                regionCustomer.Add("lastmilenetwork", customerList);
-
-                customerList = new List<String>
-                {
-                    "Cox Media Group Ohio",
-                    "St Louis Post-Dispatch"
-                };
                 regionCustomer.Add("midwest", customerList);
             }
 
@@ -994,10 +1435,27 @@ namespace AccrualApp.Controllers
                     var currentCustomerWorkSheet = workbook.AddWorksheet();
 
 
+                    
+                    if (customer == "Last Mile Network, LLC" && weeklyBiWeekly.Contains("biweekly")) {
+
+                        accountNums = new string[] {"8080","8200.2", "8045" };
+                    
+                    }
+                    else if (customer == "Last Mile Network, LLC" && weeklyBiWeekly.Contains("weekly"))
+                    {
+                        accountNums = new string[] { "8200.4", "8200.3", "8200.1", "8040" };
+                    }
+                    else 
+                    {
+                        accountNums = new string[] { "8010", "8020", "8040", "8080", "8200.1", "8200.2", "8200.3", "8200.4", "8035", "8060", "8030", "8045" };
+                    }
                     //get data
                     JArray payrollData = getPayrollData(accountNums, currRegion, customer, startDateObj, endDateObj);
 
+                    //if(payrollData.)
+
                     String[] columnList = new String[] { "type", "account_num", "account_name", "memo", "week", "balance" };
+
                     currentRow = currentCustomerWorkSheet.Row(1);
                     int columnCount = 1;
                     foreach (String column in columnList)
@@ -1015,6 +1473,8 @@ namespace AccrualApp.Controllers
                     //write data to excel
                     foreach (JObject transaction in payrollData)
                     {
+                        if (!transaction.Value<string>("memo").Contains("Capitalize")) 
+                        { 
                         String accountNum = transaction.Value<string>("account_num");
                         String accountName = transaction.Value<string>("account_name");
                         String week = transaction.Value<string>("week");
@@ -1080,6 +1540,7 @@ namespace AccrualApp.Controllers
                                     break;
                             }
                         }//end of for each data write
+                    }
 
                     }//end of transaction loop
 
@@ -1159,11 +1620,13 @@ namespace AccrualApp.Controllers
             switch (currCustomerName)
             {
                 case "IT/Mapping/Admin":
-                    if (accountName.ToLower().Contains("it salaries") && memo.ToLower().Contains("russell"))
+
+                    
+                    if (accountName.ToLower().Contains("it salaries") && memo.ToLower().Contains("russell thompson"))
                     {
                         amountToConsider = balance * 0.75;
                     }
-                    else if (accountName.ToLower().Contains("management salaries") && memo.ToLower().Contains("rob"))
+                    else if (accountName.ToLower().Contains("management salaries") && memo.ToLower().Contains("rob hudson"))
                     {
                         amountToConsider = balance * 0.2;
                     }
@@ -1237,14 +1700,11 @@ namespace AccrualApp.Controllers
             {
                 List<String> customerList = new List<String>();
                 customerList.Add("Shaw Media");
-                customerList.Add("St Louis Post-Dispatch");
                 customerList.Add("Cox Media Group Ohio");
 
                 regionCustomer.Add("Midwest", customerList);
 
                 customerList = new List<String>();
-
-
                 customerList.Add("Houston Chronicle Media Group");
                 customerList.Add("San Antonio Express-News");
                 customerList.Add("Dallas Morning News, Inc.");
@@ -1252,7 +1712,6 @@ namespace AccrualApp.Controllers
                 regionCustomer.Add("Southwest", customerList);
 
                 customerList = new List<String>();
-
                 customerList.Add("Cox-Buyers Edge");
                 customerList.Add("Cox-Evening Edge");
                 customerList.Add("Palm Beach Post");
@@ -1261,11 +1720,10 @@ namespace AccrualApp.Controllers
                 regionCustomer.Add("Southeast", customerList);
 
                 customerList = new List<String>();
-
+                customerList.Add("The Epoch Times Media Group LA");
                 customerList.Add("Santa Barbara Daily Press");
                 customerList.Add("Acorn Newspapers");
                 customerList.Add("Beach Reporter");
-                customerList.Add("Easy Reader");
                 customerList.Add("Dow Jones & Company");
                 customerList.Add("Gazette-Daily News");
                 customerList.Add("Norwalk Patriot");
@@ -1286,13 +1744,11 @@ namespace AccrualApp.Controllers
                 customerList.Add("Outlook/La Canada Flintridge");
                 customerList.Add("SCNG");
                 customerList.Add("San Bernardino Sun");
-                customerList.Add("The Press Enterprises Company- Riverside");
                 customerList.Add("San Diego Union-Tribune");
                 customerList.Add("Valassis");
                 customerList.Add("Hector Borboa - LAT SC");
                 customerList.Add("Teak Santa Barbara");
-                customerList.Add("Larchmont Chronicle");
-                customerList.Add("San Pedro Today");
+                customerList.Add("Chino Champion");
 
                 regionCustomer.Add("California", customerList);
 
@@ -1332,6 +1788,67 @@ namespace AccrualApp.Controllers
 
                     String[] accountName = new string[] {"Distribution Contract Revenue",
                             "Delivery Contract Expense"};
+
+                    switch (customer)
+                    {
+                        case "Dallas Morning News, Inc.":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "IC Contract Bagging"
+                        };
+                            break;
+                        case "The Downey Patriot":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Insert revenue",
+                            "Other Income",
+                            "Delivery Contract Expense"
+
+                        };
+                            break;
+                        case "SDUT HD-Other":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "IC Stack Out/Insertion Charges",
+                            "IC Carrier Tips",
+                            "Magazine delivery"
+                        };
+                            break;
+                        case "LAT/OC HD":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Carrier Tips - billed Customer",
+                            "Insert revenue",
+                            "Delivery Contract Expense",
+                            "IC Stack Out/Insertion Charges",
+                            "IC Carrier Tips",
+                            "Magazine delivery"
+                        };
+                            break;
+                        case "LA Times Santa Barbara-Barrons":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "IC Stack Out/Insertion Charges",
+                            "Magazine delivery"
+                        };
+                            break;
+                        case "San Bernardino Sun":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Carrier Tips - billed Customer",
+                            "Insert revenue",
+                            "Delivery Contract Expense",
+                            "IC Stack Out/Insertion Charges",
+                            "IC Carrier Tips",
+                            "Magazine delivery"
+                        };
+
+                            break;
+                        case "Valassis":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "Plastic Bags, Paper & Supplies"
+                        };
+                            break;
+                    }
+
                     foreach (String account in accountName)
                     {
                         String currAccount = account;
@@ -1352,7 +1869,34 @@ namespace AccrualApp.Controllers
                                     case "Dow Jones & Company":
                                         currAccount = "Newspapers Purchased";
                                         break;
+                                    case "Teak Santa Barbara":
+                                        currAccount = "Newspapers Purchased";
+                                        break;
                                 }
+                                break;
+                            case "Plastic Bags, Paper & Supplies":
+                                sheetName = "Bags";
+                                break;
+                            case "IC Carrier Tips":
+                                sheetName = "IC Carrier Tips";
+                                break;
+                            case "Magazine delivery":
+                                sheetName = "Magazine delivery";
+                                break;
+                            case "IC Stack Out/Insertion Charges":
+                                sheetName = "IC StackorIns";
+                                break;
+                            case "Carrier Tips - billed Customer":
+                                sheetName = "billed Customer";
+                                break;
+                            case "Insert revenue":
+                                sheetName = "Insert R";
+                                break;
+                            case "IC Contract Bagging":
+                                sheetName = "Contract Bagging";
+                                break;
+                            case "Other Income":
+                                sheetName = "Other Income";
                                 break;
                         }
 
@@ -1393,7 +1937,9 @@ namespace AccrualApp.Controllers
 
 
 
-                            if (sheetName.Contains("Expense"))
+                            if (sheetName.Contains("Expense") || sheetName.Contains("IC Carrier Tips")
+                                || sheetName.Contains("IC StackorIns") || sheetName.Contains("Magazine delivery") || sheetName.Contains("Bags")
+                                || sheetName.Contains("Contract Bagging"))
                             {
                                 balance = -1 * balance;
                                 foreach (String additionalMemo in additionalMemos)
@@ -1477,6 +2023,7 @@ namespace AccrualApp.Controllers
                         int newMethodStartIndex = columnCount4ConsolidatedSheet + 2;
 
                         columnCount4ConsolidatedSheet = newMethodStartIndex;
+                        currCustomerConsolidatedSheet.Row(rowCount4ConsolidatedSheet++).Cell(columnCount4ConsolidatedSheet++).SetValue(account);
                         currentRow = currCustomerConsolidatedSheet.Row(rowCount4ConsolidatedSheet++);
                         currentRow.Cell(columnCount4ConsolidatedSheet++).SetValue("NEW METHOD");
 
@@ -1507,7 +2054,8 @@ namespace AccrualApp.Controllers
 
                             foreach (KeyValuePair<String, Dictionary<String, Double>> transWeekIterator in transactionWeekType)
                             {
-                                DateTime currWeekObj = DateTime.Parse(transWeekIterator.Key);
+                                DateTime currWeekObj = DateTime.ParseExact(transWeekIterator.Key, "MM/dd/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                //DateTime currWeekObj = DateTime.Parse(transWeekIterator.Key);
                                 if (currWeekObj.CompareTo(startDateObj) >= 0 && currWeekObj.CompareTo(endDateObj.CompareTo(weekEnd) > 0 ? weekEnd : endDateObj) <= 0)
                                 {
                                     foreach (KeyValuePair<String, Double> typeIterator in transWeekIterator.Value)
@@ -1516,7 +2064,7 @@ namespace AccrualApp.Controllers
 
                                         double value = typeIterator.Value;
 
-                                        if (!notAllowedTypes.Contains(typeIterator.Key) && (typeIterator.Key.Contains("invoice") || typeIterator.Key.Contains("bill") || additionalMemos.Contains(typeIterator.Key)))
+                                        if (!notAllowedTypes.Contains(typeIterator.Key) && (typeIterator.Key.Contains("invoice") || typeIterator.Key.Contains("bill") || typeIterator.Key.Contains("Accrual") || additionalMemos.Contains(typeIterator.Key)))
                                         {
                                             notAllowedTypes.Add(typeIterator.Key);
                                             currWeekAmount.Add(value);
@@ -1590,7 +2138,7 @@ namespace AccrualApp.Controllers
                         currentRow.Cell(columnCount4ConsolidatedSheet++).SetValue("Need to Accrue(Week of "
                                 + (weekStartDateObj.ToString("dd,MMM")) + " - GL)");
                         currentRow.Cell(columnCount4ConsolidatedSheet++).SetValue(newMethodValue);
-
+                        rowCount4ConsolidatedSheet++;
 
                         finalData.GetValueOrDefault(currRegion).GetValueOrDefault(customer).Add(newMethodValue);
 
@@ -1601,10 +2149,16 @@ namespace AccrualApp.Controllers
                     _logger.LogInformation("Curr File Name:" + currFileName);
                     //write excel file to filesystem
                     workbook.SaveAs(System.IO.Path.Combine(pathString, currFileName));
-                }//end of customer loop
+                    //end of customer loop
+
+                }
+            }
 
 
-            }//end of company loop
+            //not valassis
+
+
+            //end of company loop
 
             var summarySheet = consolidatedWorkBook.AddWorksheet("Summary");
             int rowNum = 2;
@@ -1683,15 +2237,15 @@ namespace AccrualApp.Controllers
 
 
         [HttpPost]
-        [Route("monthendaccrualfile/{startDate}/{endDate}/{previousMonthStartDate}/{previousMonthEndDate}/{previousMonthNumOfWeeks}")]
-        public IActionResult getMonthEndAccrualFile(String startDate, String endDate, String previousMonthStartDate, String previousMonthEndDate, int previousMonthNumOfWeeks, [FromBody] System.Text.Json.JsonElement requestData)
+        [Route("monthendaccrualfile/{startDate}/{endDate}/{previousMonthStartDate}/{previousMonthEndDate}/{previousMonthNumOfWeeks}/{currentMonthNumofDays}")]
+        public IActionResult getMonthEndAccrualFile(String startDate, String endDate, String previousMonthStartDate, String previousMonthEndDate, int previousMonthNumOfWeeks, int currentMonthNumofDays, [FromBody] System.Text.Json.JsonElement requestData)
         {
             System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.InvariantCulture;
 
             String rawJson = requestData.ToString();
             JObject inputData = JsonConvert.DeserializeObject<JObject>(rawJson);
 
-            int daysInMonth = 31;
+            int daysInMonth = currentMonthNumofDays;
 
 
 
@@ -1733,7 +2287,7 @@ namespace AccrualApp.Controllers
             {
                 List<String> customerList = new List<String>();
                 customerList.Add("Shaw Media");
-                customerList.Add("St Louis Post-Dispatch");
+                //customerList.Add("St Louis Post-Dispatch");
                 customerList.Add("Cox Media Group Ohio");
 
                 regionCustomer.Add("midwest", customerList);
@@ -1758,10 +2312,12 @@ namespace AccrualApp.Controllers
 
                 customerList = new List<String>();
 
+                customerList.Add("Agenti Media Services");
+                customerList.Add("The Epoch Times Media Group LA");
                 customerList.Add("Santa Barbara Daily Press");
                 customerList.Add("Acorn Newspapers");
                 customerList.Add("Beach Reporter");
-                customerList.Add("Easy Reader");
+                //customerList.Add("Easy Reader");
                 customerList.Add("Dow Jones & Company");
                 customerList.Add("Gazette-Daily News");
                 customerList.Add("Norwalk Patriot");
@@ -1782,8 +2338,15 @@ namespace AccrualApp.Controllers
                 customerList.Add("Outlook/La Canada Flintridge");
                 customerList.Add("SCNG");
                 customerList.Add("San Bernardino Sun");
-                customerList.Add("The Press Enterprises Company- Riverside");
+                //customerList.Add("The Press Enterprises Company- Riverside");
                 customerList.Add("San Diego Union-Tribune");
+                customerList.Add("Valassis");
+                customerList.Add("Larchmont Chronicle");
+                customerList.Add("San Pedro Today");
+                customerList.Add("Hector Borboa - LAT SC");
+                customerList.Add("South Bay Digs");
+                customerList.Add("Teak Santa Barbara");
+                customerList.Add("Chino Champion");
 
                 regionCustomer.Add("california", customerList);
 
@@ -1807,15 +2370,26 @@ namespace AccrualApp.Controllers
 
                     var currCustomerConsolidatedSheet = consolidatedWorkBook.AddWorksheet(customer.Replace("/", "_").Substring(0, customer.Length > 30 ? 30 : customer.Length));
 
-                    int rowCount4ConsolidatedSheet = 1;
+                    int rowCount4ConsolidatedSheet = 2;
                     int columnCount4ConsolidatedSheet = 1;
 
 
                     var workbook = new XLWorkbook();
 
                     _logger.LogInformation("Customer:" + customer);
-                    String[] accountName = new string[] {"Distribution Contract Revenue",
-                            "Delivery Contract Expense"};
+                    String[] accountName = new string[] {"Distribution Contract Revenue","Bag/Band Sales - Customers",
+                        "Carrier Tips - billed Customer","Additional weight charge","Magazine Revenue","Insert revenue","News Stand Sales",
+                        "Equipment Rental Revenue","Insurance Services Revenue","Other Income","Sales-Service",
+                        "Delivery Contract Expense","Plastic Bags, Paper & Supplies","Contract Redelivery",
+                        "Parcel delivery","Insertion Contract Charges","3rd Party Warehousing","IC Other Expense",
+                        "IC Stack Out/Insertion Charges","Newspapers Purchased","IC Carrier Tips",
+                        "Magazine delivery","IC Truck Hauling Expense","IC Contract Bagging","IC Contract Incentives",
+                        "IC Contract Penalties","Accident Ins. - Independents"};
+
+
+
+
+
                     foreach (String account in accountName)
                     {
                         String currAccount = account;
@@ -1829,6 +2403,48 @@ namespace AccrualApp.Controllers
                             case "Distribution Contract Revenue":
                                 sheetName = "Revenue";
                                 break;
+
+                            case "Bag/Band Sales - Customers":
+                                sheetName = "Bag Sales";
+                                break;
+
+                            case "Carrier Tips - billed Customer":
+                                sheetName = "Carrier Tips";
+                                break;
+
+                            case "Additional weight charge":
+                                sheetName = "weight charge";
+                                break;
+
+                            case "Magazine Revenue":
+                                sheetName = "Magazine";
+                                break;
+
+                            case "Insert revenue":
+                                sheetName = "Insert R";
+                                break;
+
+                            case "News Stand Sales":
+                                sheetName = "News Sales";
+                                break;
+
+                            case "Equipment Rental Revenue":
+                                sheetName = "Equipment Revenue";
+                                break;
+
+                            case "Insurance Services Revenue":
+                                sheetName = "Insurance";
+                                break;
+
+                            case "Other Income":
+                                sheetName = "Other Income";
+                                break;
+
+                            case "Sales-Service":
+                                sheetName = "Sales-Service";
+                                break;
+
+
                             case "Delivery Contract Expense":
                                 sheetName = "Expense";
                                 switch (customer)
@@ -1837,6 +2453,57 @@ namespace AccrualApp.Controllers
                                         currAccount = "Newspapers Purchased";
                                         break;
                                 }
+                                break;
+                            case "Plastic Bags, Paper & Supplies":
+                                sheetName = "Bags";
+                                break;
+
+                            case "Contract Redelivery":
+                                sheetName = "Redelivery";
+                                break;
+
+                            case "Parcel delivery":
+                                sheetName = "Parcel delivery";
+                                break;
+
+                            case "Insertion Contract Charges":
+                                sheetName = "Insertion Charges";
+                                break;
+
+                            case "3rd Party Warehousing":
+                                sheetName = "Warehousing";
+                                break;
+
+                            case "IC Other Expense":
+                                sheetName = "IC Other Expense";
+                                break;
+
+                            case "IC Stack Out/Insertion Charges":
+                                sheetName = "IC StackorIns";
+                                break;
+                            case "Newspapers Purchased":
+                                sheetName = "Newspapers Purchased";
+                                break;
+                            case "IC Carrier Tips":
+                                sheetName = "IC Carrier Tips";
+                                break;
+                            case "Magazine delivery":
+                                sheetName = "Magazine delivery";
+                                break;
+                            case "IC Truck Hauling Expense":
+                                sheetName = "Truck Hauling";
+                                break;
+                            case "IC Contract Bagging":
+                                sheetName = "IC Bagging";
+                                break;
+                            case "IC Contract Incentives":
+                                sheetName = "IC Incentives";
+                                break;
+                            case "IC Contract Penalties":
+                                sheetName = "IC Penalties";
+                                break;
+                            case "Accident Ins. - Independents":
+                                sheetName = "Accident";
                                 break;
                         }
 
@@ -1873,7 +2540,11 @@ namespace AccrualApp.Controllers
 
 
 
-                            if (sheetName.Contains("Expense"))
+                            if (sheetName.Contains("Expense") || sheetName.Contains("Bags") || sheetName.Contains("IC StackorIns")
+                                || sheetName.Contains("Newspapers Purchased") || sheetName.Contains("IC Carrier Tips") || sheetName.Contains("Magazine delivery")
+                                || sheetName.Contains("Truck Hauling") || sheetName.Contains("IC Bagging") || sheetName.Contains("IC Incentives")
+                                || sheetName.Contains("IC Penalties") || sheetName.Contains("Accident") || sheetName.Contains("Redelivery")
+                                || sheetName.Contains("Insertion Charges") || sheetName.Contains("Parcel delivery") || sheetName.Contains("Warehousing") || sheetName.Contains("IC Other Expense"))
                             {
                                 balance = -1 * balance;
                                 foreach (String additionalMemo in additionalMemos)
@@ -1928,6 +2599,7 @@ namespace AccrualApp.Controllers
                         _logger.LogInformation("Last Month Daily Avg:" + lastMonthDailyAvg);
 
                         columnCount4ConsolidatedSheet = 1;
+                        currCustomerConsolidatedSheet.Row(rowCount4ConsolidatedSheet++).Cell(columnCount4ConsolidatedSheet++).SetValue(account);
                         currentRow = currCustomerConsolidatedSheet.Row(rowCount4ConsolidatedSheet++);
                         currentRow.Cell(columnCount4ConsolidatedSheet++).SetValue("Last Month Daily Avg");
                         currentRow.Cell(columnCount4ConsolidatedSheet++).SetValue<double>(lastMonthDailyAvg);
@@ -2065,7 +2737,8 @@ namespace AccrualApp.Controllers
 
                             foreach (KeyValuePair<String, Dictionary<String, Double>> transWeekIterator in transactionWeekType)
                             {
-                                DateTime currWeekObj = DateTime.Parse(transWeekIterator.Key);
+                                DateTime currWeekObj = DateTime.ParseExact(transWeekIterator.Key, "MM/dd/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                //DateTime currWeekObj = DateTime.Parse(transWeekIterator.Key);
                                 if (currWeekObj.CompareTo(startDateObj) >= 0 && currWeekObj.CompareTo(endDateObj.CompareTo(weekEnd) > 0 ? weekEnd : endDateObj) <= 0)
                                 {
                                     foreach (KeyValuePair<String, Double> typeIterator in transWeekIterator.Value)
@@ -2185,15 +2858,9 @@ namespace AccrualApp.Controllers
                         currentRow = currCustomerConsolidatedSheet.Row(rowCount4ConsolidatedSheet++);
                         currentRow.Cell(columnCount4ConsolidatedSheet++).SetValue("Diff(OLD-NEW)");
                         currentRow.Cell(columnCount4ConsolidatedSheet++).SetValue(oldMethodValue - newMethodValue);
-
-
-
-
-
+                        rowCount4ConsolidatedSheet++;
 
                     }//end of accountName loop
-
-
 
                     String currFileName = customer;
                     currFileName = currFileName.Replace("/", "_") + ".xlsx";
@@ -2204,6 +2871,7 @@ namespace AccrualApp.Controllers
 
 
             }//end of company loop
+
 
             String consolidatedWorkBookFileName = "consolidated.xlsx";
             consolidatedWorkBook.SaveAs(System.IO.Path.Combine(pathString, consolidatedWorkBookFileName));
@@ -2246,7 +2914,11 @@ namespace AccrualApp.Controllers
 
 
 
-                if (sheetName.Contains("Expense"))
+                if (sheetName.Contains("Expense") || sheetName.Contains("Bags") || sheetName.Contains("IC StackorIns")
+                   || sheetName.Contains("Newspapers Purchased") || sheetName.Contains("IC Carrier Tips") || sheetName.Contains("Magazine delivery")
+                   || sheetName.Contains("Truck Hauling") || sheetName.Contains("IC Bagging") || sheetName.Contains("IC Incentives")
+                   || sheetName.Contains("IC Penalties") || sheetName.Contains("Accident") || sheetName.Contains("Redelivery")
+                   || sheetName.Contains("Insertion Charges") || sheetName.Contains("Parcel delivery") || sheetName.Contains("Warehousing") || sheetName.Contains("IC Other Expense"))
                 {
                     balance = -1 * balance;
                     foreach (String additionalMemo in additionalMemos)
@@ -2345,7 +3017,10 @@ namespace AccrualApp.Controllers
 
 
 
-                if (sheetName.Contains("Expense"))
+                if (sheetName.Contains("Expense") || sheetName.Contains("Bags") || sheetName.Contains("IC StackorIns")
+                   || sheetName.Contains("Newspapers Purchased") || sheetName.Contains("IC Carrier Tips") || sheetName.Contains("Magazine delivery")
+                   || sheetName.Contains("Truck Hauling") || sheetName.Contains("IC Bagging") || sheetName.Contains("IC Incentives")
+                   || sheetName.Contains("IC Penalties") || sheetName.Contains("Accident"))
                 {
                     balance = -1 * balance;
                     foreach (String additionalMemo in additionalMemos)
@@ -2536,8 +3211,49 @@ namespace AccrualApp.Controllers
             return transactionData;
         }
 
+        public JArray getMagazineData(String accountNum, String companyId, String customerName, String[] transactionType, DateTime startDate, DateTime endDate)
+        {
+            JArray transactionData = new JArray() as dynamic;
 
-        public JArray getHoyLatData(String accountNum, String companyId, String customerName, String[] transactionType, DateTime startDate, DateTime endDate)
+            using (aci_databaseContext db = new aci_databaseContext())
+            {
+                var data = (from transaction in db.TransactionTmp
+                            where transaction.TransactionDate >= startDate && transaction.TransactionDate <= endDate && transaction.RegionId == companyId && transactionType.Contains(transaction.Type)
+                            join account in db.Account
+                            on transaction.AccountId equals account.AccountId
+                            where accountNum == account.AccountNum
+                            join customer in db.Customer
+                            on transaction.CustomerId equals customer.CustomerId
+                            where customer.CustomerName == customerName
+                            orderby transaction.TransactionDate, transaction.Memo
+                            select new
+                            {
+                                AccountName = account.AccountName,
+                                AccountNum = account.AccountNum,
+                                Type = transaction.Type,
+                                Memo = transaction.Memo,
+                                TransactionDate = transaction.TransactionDate,
+                                Amount = transaction.Amount
+                            }
+                          );
+
+                foreach (var d in data)
+                {
+                    dynamic currRecord = new JObject();
+                    currRecord.type = d.Type;
+                    currRecord.memo = d.Memo;
+                    currRecord.week = d.TransactionDate;
+                    currRecord.balance = d.Amount;
+                    currRecord.account_name = d.AccountName;
+                    currRecord.account_num = d.AccountNum;
+
+                    transactionData.Add(currRecord);
+                }
+            }
+            return transactionData;
+        }
+
+            public JArray getHoyLatData(String accountNum, String companyId, String customerName, String[] transactionType, DateTime startDate, DateTime endDate)
         {
             JArray transactionData = new JArray() as dynamic;
 
