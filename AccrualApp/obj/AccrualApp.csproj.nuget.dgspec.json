@@ -1,23 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\AccrualApp.csproj": {}
+    "D:\\Corestrat\\asvinth_changes_accrual\\accrual-backend\\AccrualApp\\AccrualApp.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\AccrualApp.csproj": {
+    "D:\\Corestrat\\asvinth_changes_accrual\\accrual-backend\\AccrualApp\\AccrualApp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\AccrualApp.csproj",
+        "projectUniqueName": "D:\\Corestrat\\asvinth_changes_accrual\\accrual-backend\\AccrualApp\\AccrualApp.csproj",
         "projectName": "AccrualApp",
-        "projectPath": "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\AccrualApp.csproj",
-        "packagesPath": "C:\\Users\\Nivashini\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Nivashini\\source\\repos\\aci-workspace\\aci-accrual-backend-api\\AccrualApp\\obj\\",
+        "projectPath": "D:\\Corestrat\\asvinth_changes_accrual\\accrual-backend\\AccrualApp\\AccrualApp.csproj",
+        "packagesPath": "C:\\Users\\Corestart11\\.nuget\\packages\\",
+        "outputPath": "D:\\Corestrat\\asvinth_changes_accrual\\accrual-backend\\AccrualApp\\obj\\",
         "projectStyle": "PackageReference",
-        "fallbackFolders": [
-          "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder"
-        ],
         "configFilePaths": [
-          "C:\\Users\\Nivashini\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Corestart11\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
@@ -94,7 +91,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.400\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\3.1.301\\RuntimeIdentifierGraph.json"
         }
       }
     }

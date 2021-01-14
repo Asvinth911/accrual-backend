@@ -71,7 +71,7 @@ namespace AccrualApp.Controllers
         public IActionResult getCustomerList(IFormFile mappingFile)
         {
             Dictionary<String, String> accId = new Dictionary<String, String>();
-            Dictionary<String, String> mappedVal = new Dictionary<String, String>();
+            
             Dictionary<String, Dictionary<String, String>> regCus = new Dictionary<String, Dictionary<String, String>>();
 
             accId = getAccountId();
@@ -108,72 +108,85 @@ namespace AccrualApp.Controllers
 
             String companyName = sheet.GetRow(0).GetCell(0).ToString();
 
-            String date = sheet.GetRow(1).GetCell(dateIndexStart).ToString();
-            SimpleDateFormat myFormat = new SimpleDateFormat("yyyy-MM-dd");
-
+            int dateIdexCount = sheet.GetRow(1).PhysicalNumberOfCells;
             try
             {
-                reformattedStrDate = myFormat.Format(myFormat.Parse(date));
-            }
-            catch (Exception e)
-            {
-                e.ToString();
-            }
-
-            String customerId = regCus.GetValueOrDefault(regionId).FirstOrDefault(x => x.Value == companyName).Key;
-
-            int start = 59;
-
-            for (int row = start; row <= 162; row++)
-            {
-                Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
-                if (sheet.GetRow(row).GetCell(0).ToString() == "Total Income" ||
-                    sheet.GetRow(row).GetCell(0).ToString() == "Cost of Goods Sold" ||
-                     sheet.GetRow(row).GetCell(0).ToString() == "Rate" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Quantity" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Total COGS" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Gross Profit" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Expense" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Total Expense" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Net Ordinary Income" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Other Income/Expense" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Other Income" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Total Other Income" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Other Expense" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "EBITDA" ||
-                      sheet.GetRow(row).GetCell(0).ToString() == "Net Income")
+                while (dateIndexStart<=dateIdexCount-1)
                 {
+                    Dictionary<String, String> mappedVal = new Dictionary<String, String>();
 
-                }
-                else if (sheet.GetRow(row).GetCell(1).CellType == CellType.Blank || sheet.GetRow(row).GetCell(1).ToString() == "0.00")
-                {
-                    Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
-                }
-                else if (sheet.GetRow(row).GetCell(0).ToString().Contains("Other"))
-                {
+                    String date = sheet.GetRow(1).GetCell(dateIndexStart).ToString();
+                    SimpleDateFormat myFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-                }
-                else
-                {
-                    Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
-                    String[] splitWord = sheet.GetRow(row).GetCell(0).ToString().Split("·");
-                    mappedVal.Add(accId.FirstOrDefault(x => x.Value == splitWord[0].Trim()).Key, sheet.GetRow(row).GetCell(1).ToString());
-                }
+                    try
+                    {
+                        reformattedStrDate = myFormat.Format(myFormat.Parse(date));
+                    }
+                    catch (Exception e)
+                    {
+                        e.ToString();
+                    }
 
+                    String customerId = regCus.GetValueOrDefault(regionId).FirstOrDefault(x => x.Value == companyName).Key;
+
+                    int start = 8;
+
+                    for (int row = start; row <= 162; row++)
+                    {
+                        Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                        if (sheet.GetRow(row).GetCell(0).ToString() == "Total Income" ||
+                            sheet.GetRow(row).GetCell(0).ToString() == "Cost of Goods Sold" ||
+                             sheet.GetRow(row).GetCell(0).ToString() == "Rate" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Quantity" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Total COGS" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Gross Profit" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Expense" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Total Expense" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Net Ordinary Income" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Other Income/Expense" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Other Income" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Total Other Income" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Other Expense" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "EBITDA" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Net Income")
+                        {
+
+                        }
+                        else if (sheet.GetRow(row).GetCell(1).CellType == CellType.Blank || sheet.GetRow(row).GetCell(1).ToString() == "0.00")
+                        {
+                            Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                        }
+                        else if (sheet.GetRow(row).GetCell(0).ToString().Contains("Other"))
+                        {
+
+                        }
+                        else
+                        {
+                            Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                            String[] splitWord = sheet.GetRow(row).GetCell(0).ToString().Split("·");
+                            mappedVal.Add(accId.FirstOrDefault(x => x.Value == splitWord[0].Trim()).Key, sheet.GetRow(row).GetCell(1).ToString());
+                        }
+
+                    }
+
+                    foreach (var keyval in mappedVal)
+                    {
+                        currentCustomerWorkSheet.Row(currentRow).Cell(1).SetValue(id);
+                        currentCustomerWorkSheet.Row(currentRow).Cell(2).SetValue(keyval.Key);
+                        currentCustomerWorkSheet.Row(currentRow).Cell(3).SetValue(regionId);
+                        currentCustomerWorkSheet.Row(currentRow).Cell(4).SetValue(customerId);
+                        currentCustomerWorkSheet.Row(currentRow).Cell(5).SetValue(reformattedStrDate);
+                        currentCustomerWorkSheet.Row(currentRow).Cell(6).SetValue(keyval.Value);
+                        currentRow += 1;
+                        id += 1;
+
+
+                    }
+                    dateIndexStart += 1;
+                }
             }
-
-            foreach (var keyval in mappedVal)
-            {
-                currentCustomerWorkSheet.Row(currentRow).Cell(1).SetValue(id);
-                currentCustomerWorkSheet.Row(currentRow).Cell(2).SetValue(keyval.Key);
-                currentCustomerWorkSheet.Row(currentRow).Cell(3).SetValue(regionId);
-                currentCustomerWorkSheet.Row(currentRow).Cell(4).SetValue(customerId);
-                currentCustomerWorkSheet.Row(currentRow).Cell(5).SetValue(reformattedStrDate);
-                currentCustomerWorkSheet.Row(currentRow).Cell(6).SetValue(keyval.Value);
-                currentRow += 1;
-                //dateIndexStart += 1;
-
-            }
+            catch(Exception e)
+            { }
 
 
             //writing to excel
