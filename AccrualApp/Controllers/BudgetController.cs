@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -102,7 +103,7 @@ namespace AccrualApp.Controllers
 
             var mappingWorkbook = new XSSFWorkbook(mappingFile.OpenReadStream());
 
-            ISheet sheet = mappingWorkbook.GetSheetAt(0);
+            ISheet sheet = mappingWorkbook.GetSheetAt(40);
 
             String regionId = "advertisingconsultants";
 
@@ -113,9 +114,10 @@ namespace AccrualApp.Controllers
             {
                 while (dateIndexStart<=dateIdexCount-1)
                 {
-                    Dictionary<String, String> mappedVal = new Dictionary<String, String>();
+                    Dictionary<String, decimal> mappedVal = new Dictionary<String,decimal>();
 
                     String date = sheet.GetRow(1).GetCell(dateIndexStart).ToString();
+                    Console.WriteLine(date);
                     SimpleDateFormat myFormat = new SimpleDateFormat("yyyy-MM-dd");
 
                     try
@@ -129,9 +131,9 @@ namespace AccrualApp.Controllers
 
                     String customerId = regCus.GetValueOrDefault(regionId).FirstOrDefault(x => x.Value == companyName).Key;
 
-                    int start = 8;
+                    int start = 10;
 
-                    for (int row = start; row <= 162; row++)
+                    for (int row = start; row <= 160; row++)
                     {
                         Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
                         if (sheet.GetRow(row).GetCell(0).ToString() == "Total Income" ||
@@ -146,25 +148,45 @@ namespace AccrualApp.Controllers
                               sheet.GetRow(row).GetCell(0).ToString() == "Other Income/Expense" ||
                               sheet.GetRow(row).GetCell(0).ToString() == "Other Income" ||
                               sheet.GetRow(row).GetCell(0).ToString() == "Total Other Income" ||
+                              sheet.GetRow(row).GetCell(0).ToString() == "Total Other Expense" ||
                               sheet.GetRow(row).GetCell(0).ToString() == "Other Expense" ||
                               sheet.GetRow(row).GetCell(0).ToString() == "EBITDA" ||
                               sheet.GetRow(row).GetCell(0).ToString() == "Net Income")
                         {
 
                         }
-                        else if (sheet.GetRow(row).GetCell(1).CellType == CellType.Blank || sheet.GetRow(row).GetCell(1).ToString() == "0.00")
+                        else if (sheet.GetRow(row).GetCell(dateIndexStart).CellType == CellType.Blank || sheet.GetRow(row).GetCell(dateIndexStart).ToString() == "0.00")
                         {
                             Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
                         }
-                        else if (sheet.GetRow(row).GetCell(0).ToString().Contains("Other"))
+                        else if (sheet.GetRow(row).GetCell(0).ToString().Contains("- Other"))
                         {
 
                         }
+                        else if (sheet.GetRow(row).GetCell(0).ToString().Contains("LAT breakup fee/ misc income"))
+                        {
+                            int val = int.Parse(sheet.GetRow(row).GetCell(dateIndexStart).ToString().Replace(",",""));
+                            mappedVal.Add("-13",val);
+                        }
                         else
                         {
-                            Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
-                            String[] splitWord = sheet.GetRow(row).GetCell(0).ToString().Split("·");
-                            mappedVal.Add(accId.FirstOrDefault(x => x.Value == splitWord[0].Trim()).Key, sheet.GetRow(row).GetCell(1).ToString());
+                            if ((row >= 10 && row <= 29) || (row >= 145 && row <= 150))
+                            {
+                                String val = sheet.GetRow(row).GetCell(dateIndexStart).ToString();
+                                decimal va = decimal.Parse(val);
+                                Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                                String[] splitWord = sheet.GetRow(row).GetCell(0).ToString().Split("·");
+                                mappedVal.Add(accId.FirstOrDefault(x => x.Value == splitWord[0].Trim()).Key, va);
+                            }
+                            else 
+                            {
+                                String val = sheet.GetRow(row).GetCell(dateIndexStart).ToString();
+                                decimal va = decimal.Parse(val);
+                                Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                                String[] splitWord = sheet.GetRow(row).GetCell(0).ToString().Split("·");
+                                mappedVal.Add(accId.FirstOrDefault(x => x.Value == splitWord[0].Trim()).Key, va*-1);
+                            }
+                           
                         }
 
                     }
@@ -186,7 +208,9 @@ namespace AccrualApp.Controllers
                 }
             }
             catch(Exception e)
-            { }
+            {
+                Console.WriteLine(e);
+            }
 
 
             //writing to excel

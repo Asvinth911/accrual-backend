@@ -166,7 +166,7 @@ namespace AccrualApp.Controllers
             ISheet sheet = mappingWorkbook.GetSheetAt(0);
             int start = 3;
 
-            for (int row = start; row <= 155; row++)
+            for (int row = start; row <= 157; row++)
             {
                 if (sheet.GetRow(row).GetCell(0).ToString() == "3. Gross Profit")
                 {
