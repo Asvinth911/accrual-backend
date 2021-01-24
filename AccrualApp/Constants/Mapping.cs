@@ -7,25 +7,25 @@ namespace AccrualApp.Constants
 {
     public class Mapping
     {
-        public Dictionary<String, String> regionId()
+        public Dictionary<String , int> regionId()
         {
 
-            Dictionary<String, String> regionMap = new Dictionary<String, String>();
+            Dictionary<String, int> regionMap = new Dictionary<String,int>();
 
-            regionMap.Add("advertisingconsultants", "Advertising Consultants");
-            regionMap.Add("california", "California");
-            regionMap.Add("cipsmarketinggroup", "CIPS Marketing Group");
-            regionMap.Add("interco", "Interco");
-            regionMap.Add("ipaparcellogistics", "IPA Parcel Logistics");
-            regionMap.Add("lastmilenetwork", "Last Mile Network");
-            regionMap.Add("mdnet", "MDNET");
-            regionMap.Add("mediagroup", "Media Group");
-            regionMap.Add("midwest", "Midwest");
-            regionMap.Add("northeast", "Northeast");
-            regionMap.Add("northwest", "Northwest");
-            regionMap.Add("southeast", "Southeast");
-            regionMap.Add("southwest", "Southwest");
-            regionMap.Add("ultraparcellogistics", "Ultra Parcel Logistics");
+            regionMap.Add("Advertising Consultants",1);
+            regionMap.Add("California",2);
+            regionMap.Add("CIPS Marketing Group",3);
+            regionMap.Add("Interco",4);
+            regionMap.Add("IPA Parcel Logistics",5);
+            regionMap.Add("Last Mile Network",6);
+            regionMap.Add("MDNET",7);
+            regionMap.Add("Media Group",8);
+            regionMap.Add("Midwest",9);
+            regionMap.Add("Northeast",10);
+            regionMap.Add("Northwest",11);
+            regionMap.Add("Southeast",12);
+            regionMap.Add("Southwest",13);
+            regionMap.Add("Ultra Parcel Logistics",14);
             return regionMap;
         }
         public Dictionary<String, int> companyId() {

@@ -68,8 +68,8 @@ namespace AccrualApp.Controllers
 
 
         [HttpPost]
-        [Route("test")]
-        public IActionResult getCustomerList(IFormFile mappingFile)
+        [Route("budgetPush")]
+        public IActionResult getCustomerList(IFormFile mappingFile,String regionName)
         {
             Dictionary<String, String> accId = new Dictionary<String, String>();
             
@@ -105,7 +105,7 @@ namespace AccrualApp.Controllers
 
             ISheet sheet = mappingWorkbook.GetSheetAt(40);
 
-            String regionId = "advertisingconsultants";
+            String regionId = regionName;
 
             String companyName = sheet.GetRow(0).GetCell(0).ToString();
 
