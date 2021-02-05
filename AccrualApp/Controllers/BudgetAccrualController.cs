@@ -109,7 +109,7 @@ namespace AccrualApp.Controllers
 
             var mappingWorkbook = new XSSFWorkbook(mappingFile.OpenReadStream());
 
-            ISheet sheet = mappingWorkbook.GetSheetAt(0);
+            ISheet sheet = mappingWorkbook.GetSheetAt(3);
 
             String regionId = regionName;
 

@@ -73,11 +73,11 @@ namespace AccrualApp.Constants
             customerMapping.Add("San Bernardino Sun", 157);
             customerMapping.Add("San Diego Neighborhood News - East County", 104);
             customerMapping.Add("San Diego News - Chula Vista Star News", 103);
-            customerMapping.Add("San Diego Union-Tribune", 102);
+            customerMapping.Add("SDUT-TMC", 102);
             customerMapping.Add("San Pedro Today", 158);
             customerMapping.Add("Santa Barbara Daily Press", 201);
-            customerMapping.Add("SCNG", 159);
-            customerMapping.Add("SDUT HD-Other", 101);
+            customerMapping.Add("La Prensa", 159);
+            customerMapping.Add("SDUT HD", 101);
             customerMapping.Add("South Bay Digs", 162);
             customerMapping.Add("Teak Santa Barbara", 163);
             customerMapping.Add("The Epoch Times Media Group LA", 415);

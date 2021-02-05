@@ -662,8 +662,6 @@ namespace AccrualApp.Controllers
 
                 Dictionary<String, Double> weeklyBalance = new Dictionary<string, double>();
 
-
-
                 //write data to excel
                 foreach (JObject transaction in transactionData)
                 {
@@ -1737,14 +1735,14 @@ namespace AccrualApp.Controllers
                 customerList.Add("UT San Diego");
                 customerList.Add("Greenleaf Guardian, LLC");
                 customerList.Add("The Downey Patriot");
-                customerList.Add("SDUT HD-Other");
+                customerList.Add("SDUT HD");
                 customerList.Add("San Diego Neighborhood News - East County");
                 customerList.Add("OCR - Rack and Stack");
                 customerList.Add("LA Times Santa Barbara-Barrons");
                 customerList.Add("Outlook/La Canada Flintridge");
-                customerList.Add("SCNG");
+                customerList.Add("La Prensa");
                 customerList.Add("San Bernardino Sun");
-                customerList.Add("San Diego Union-Tribune");
+                customerList.Add("SDUT-TMC");
                 customerList.Add("Valassis");
                 customerList.Add("Hector Borboa - LAT SC");
                 customerList.Add("Teak Santa Barbara");
@@ -1791,21 +1789,51 @@ namespace AccrualApp.Controllers
 
                     switch (customer)
                     {
+                        case "Houston Chronicle Media Group":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "Insert revenue",
+                            "Insurance Services Revenue"
+                            };
+                            break;
+
+                        case "Ventura County Star (HD)":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "Insert revenue",
+                            "Carrier Tips - billed Customer",
+                            "IC Contract Bagging",
+                            "IC Carrier Tips",
+                            "Magazine delivery" //should add magazine revenue if needed 
+                            };
+                            break;
+
                         case "Dallas Morning News, Inc.":
                             accountName = new string[] {"Distribution Contract Revenue",
                             "Delivery Contract Expense",
                             "IC Contract Bagging"
                         };
                             break;
+
+                        case "Shaw Media":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "Carrier Tips - billed Customer",
+                            "IC Contract Incentives",
+                            "IC Stack Out/Insertion Charges",
+                            "IC Carrier Tips"
+                            };
+                            break;
+
                         case "The Downey Patriot":
                             accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
                             "Insert revenue",
                             "Other Income",
-                            "Delivery Contract Expense"
 
                         };
                             break;
-                        case "SDUT HD-Other":
+                        case "SDUT HD":
                             accountName = new string[] {"Distribution Contract Revenue",
                             "Delivery Contract Expense",
                             "IC Stack Out/Insertion Charges",
@@ -1815,9 +1843,9 @@ namespace AccrualApp.Controllers
                             break;
                         case "LAT/OC HD":
                             accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
                             "Carrier Tips - billed Customer",
                             "Insert revenue",
-                            "Delivery Contract Expense",
                             "IC Stack Out/Insertion Charges",
                             "IC Carrier Tips",
                             "Magazine delivery"
@@ -1832,9 +1860,9 @@ namespace AccrualApp.Controllers
                             break;
                         case "San Bernardino Sun":
                             accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
                             "Carrier Tips - billed Customer",
                             "Insert revenue",
-                            "Delivery Contract Expense",
                             "IC Stack Out/Insertion Charges",
                             "IC Carrier Tips",
                             "Magazine delivery"
@@ -1897,6 +1925,12 @@ namespace AccrualApp.Controllers
                                 break;
                             case "Other Income":
                                 sheetName = "Other Income";
+                                break;
+                            case "Insurance Services Revenue":
+                                sheetName = "Insurance Services";
+                                break;
+                            case "IC Contract Incentives":
+                                sheetName = "Incentives";
                                 break;
                         }
 
@@ -2331,15 +2365,15 @@ namespace AccrualApp.Controllers
                 customerList.Add("UT San Diego");
                 customerList.Add("Greenleaf Guardian, LLC");
                 customerList.Add("The Downey Patriot");
-                customerList.Add("SDUT HD-Other");
+                customerList.Add("SDUT HD");
                 customerList.Add("San Diego Neighborhood News - East County");
                 customerList.Add("OCR - Rack and Stack");
                 customerList.Add("LA Times Santa Barbara-Barrons");
                 customerList.Add("Outlook/La Canada Flintridge");
-                customerList.Add("SCNG");
+                customerList.Add("La Prensa");
                 customerList.Add("San Bernardino Sun");
                 //customerList.Add("The Press Enterprises Company- Riverside");
-                customerList.Add("San Diego Union-Tribune");
+                customerList.Add("SDUT-TMC");
                 customerList.Add("Valassis");
                 customerList.Add("Larchmont Chronicle");
                 customerList.Add("San Pedro Today");
@@ -2377,15 +2411,16 @@ namespace AccrualApp.Controllers
                     var workbook = new XLWorkbook();
 
                     _logger.LogInformation("Customer:" + customer);
-                    String[] accountName = new string[] {"Distribution Contract Revenue","Bag/Band Sales - Customers",
-                        "Carrier Tips - billed Customer","Additional weight charge","Magazine Revenue","Insert revenue","News Stand Sales",
-                        "Equipment Rental Revenue","Insurance Services Revenue","Other Income","Sales-Service",
-                        "Delivery Contract Expense","Plastic Bags, Paper & Supplies","Contract Redelivery",
-                        "Parcel delivery","Insertion Contract Charges","3rd Party Warehousing","IC Other Expense",
-                        "IC Stack Out/Insertion Charges","Newspapers Purchased","IC Carrier Tips",
-                        "Magazine delivery","IC Truck Hauling Expense","IC Contract Bagging","IC Contract Incentives",
-                        "IC Contract Penalties","Accident Ins. - Independents"};
+                    /* String[] accountName = new string[] {"Distribution Contract Revenue","Bag/Band Sales - Customers",
+                         "Carrier Tips - billed Customer","Additional weight charge","Magazine Revenue","Insert revenue","News Stand Sales",
+                         "Equipment Rental Revenue","Insurance Services Revenue","Other Income","Sales-Service",
+                         "Delivery Contract Expense","Plastic Bags, Paper & Supplies","Contract Redelivery",
+                         "Parcel delivery","Insertion Contract Charges","3rd Party Warehousing","IC Other Expense",
+                         "IC Stack Out/Insertion Charges","Newspapers Purchased","IC Carrier Tips",
+                         "Magazine delivery","IC Truck Hauling Expense","IC Contract Bagging","IC Contract Incentives",
+                         "IC Contract Penalties","Accident Ins. - Independents"};*/
 
+                    String[] accountName = new string[] { "Distribution Contract Revenue", "Delivery Contract Expense" };
 
 
 

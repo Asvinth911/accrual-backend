@@ -69,7 +69,7 @@ namespace AccrualApp.Controllers
 
         [HttpPost]
         [Route("budgetPush")]
-        public IActionResult getCustomerList(IFormFile mappingFile,String regionName)
+        public IActionResult getCustomerList(IFormFile mappingFile)
         {
             Dictionary<String, String> accId = new Dictionary<String, String>();
             
@@ -78,7 +78,6 @@ namespace AccrualApp.Controllers
             accId = getAccountId();
             regCus = getRegCusId();
 
-            int id = 7575;
             int currentRow = 1;
             int dateIndexStart = 1;
             String reformattedStrDate = "";
@@ -103,9 +102,9 @@ namespace AccrualApp.Controllers
 
             var mappingWorkbook = new XSSFWorkbook(mappingFile.OpenReadStream());
 
-            ISheet sheet = mappingWorkbook.GetSheetAt(40);
+            ISheet sheet = mappingWorkbook.GetSheetAt(0);
 
-            String regionId = regionName;
+            String regionId = "southeast";
 
             String companyName = sheet.GetRow(0).GetCell(0).ToString();
 
@@ -170,7 +169,7 @@ namespace AccrualApp.Controllers
                         }
                         else
                         {
-                            if ((row >= 10 && row <= 29) || (row >= 145 && row <= 150))
+                            if ((row >= 10 && row <= 29) || (row >= 142 && row <= 147))
                             {
                                 String val = sheet.GetRow(row).GetCell(dateIndexStart).ToString();
                                 decimal va = decimal.Parse(val);
@@ -193,14 +192,14 @@ namespace AccrualApp.Controllers
 
                     foreach (var keyval in mappedVal)
                     {
-                        currentCustomerWorkSheet.Row(currentRow).Cell(1).SetValue(id);
+                        
                         currentCustomerWorkSheet.Row(currentRow).Cell(2).SetValue(keyval.Key);
                         currentCustomerWorkSheet.Row(currentRow).Cell(3).SetValue(regionId);
                         currentCustomerWorkSheet.Row(currentRow).Cell(4).SetValue(customerId);
                         currentCustomerWorkSheet.Row(currentRow).Cell(5).SetValue(reformattedStrDate);
                         currentCustomerWorkSheet.Row(currentRow).Cell(6).SetValue(keyval.Value);
                         currentRow += 1;
-                        id += 1;
+                       
 
 
                     }
