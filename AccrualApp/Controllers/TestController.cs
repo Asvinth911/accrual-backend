@@ -132,12 +132,12 @@ namespace AccrualApp.Controllers
 
         //api for creating query for revenue and cogs in provisional p&l
         [HttpPost]
-        [Route("mapping/{date}")]
-        public IActionResult writeIds(String date, IFormFile mappingFile)
+        [Route("4-4-5/{numberofWeeks}")]
+        public IActionResult writeIds(int numberofWeeks,IFormFile mappingFile)
         {
             System.Globalization.CultureInfo provider = System.Globalization.CultureInfo.InvariantCulture;
 
-            DateTime entryDate = DateTime.ParseExact(date, "yyyy-MM-dd", provider);
+            //DateTime entryDate = DateTime.ParseExact(date, "yyyy-MM-dd", provider);
             // Specify a name for your top-level folder.
             string folderName = @_webHostEnvironment.ContentRootPath;
 
@@ -156,156 +156,170 @@ namespace AccrualApp.Controllers
             Dictionary<int, int> mappedVal = new Dictionary<int, int>();
             Dictionary<int, int> tmpVal = new Dictionary<int, int>();
             List<string> value = new List<string>();
-            List<int> negValue = new List<int>();
+            //List<int> negValue = new List<int>();
 
+            //for mapped entries
+            var workbook = new XLWorkbook();
+            //var currentCustomerWorkSheet;
+            //retrieving the customer id's and company id's
             Mapping map = new Mapping();
             retValcomp = map.companyId();
             retValcust = map.customerId();
             int cmpTemp = 0;
 
+            String entryDate = "";
+
             ISheet sheet = mappingWorkbook.GetSheetAt(0);
-            int start = 3;
 
-            for (int row = start; row <= 157; row++)
+            for (int numofWeeks = 1; numofWeeks <= numberofWeeks; numofWeeks++)
             {
-                if (sheet.GetRow(row).GetCell(0).ToString() == "3. Gross Profit")
+                mappedVal = new Dictionary<int, int>();
+                tmpVal = new Dictionary<int, int>();
+                value = new List<string>();
+                entryDate = sheet.GetRow(0).GetCell(numofWeeks).ToString();
+                //for each week entry each worksheet. 
+                var currentCustomerWorkSheet = workbook.AddWorksheet(entryDate);
+                int start = 3;
+
+                //take data till gross profit
+                for (int row = start; row <= 157; row++)
                 {
-                    break;
-                }
-
-                if (sheet.GetRow(row).GetCell(0).ToString() == "2. COGS")
-                {
-                    ++row;
-                    tmpVal = mappedVal;
-                    mappedVal = new Dictionary<int, int>();
-
-                }
-                if (sheet.GetRow(row).GetCell(0).ToString() == "Advertising Consultants")
-                {
-                    cmpTemp = retValcomp.GetValueOrDefault("Advertising Consultants");
-
-                    ++row;
-                }
-                if (sheet.GetRow(row).GetCell(0).ToString() == "California")
-                {
-                    cmpTemp = retValcomp.GetValueOrDefault("California");
-
-                    ++row;
-                }
-                else if (sheet.GetRow(row).GetCell(0).ToString() == "Last Mile Network")
-                {
-                    cmpTemp = retValcomp.GetValueOrDefault("Last Mile Network");
-
-                    ++row;
-                }
-                else if (sheet.GetRow(row).GetCell(0).ToString() == "MDNET")
-                {
-                    cmpTemp = retValcomp.GetValueOrDefault("MDNET");
-
-                    ++row;
-                }
-                else if (sheet.GetRow(row).GetCell(0).ToString() == "Midwest")
-                {
-                    cmpTemp = retValcomp.GetValueOrDefault("Midwest");
-
-                    ++row;
-                }
-                else if (sheet.GetRow(row).GetCell(0).ToString() == "Southeast")
-                {
-                    cmpTemp = retValcomp.GetValueOrDefault("Southeast");
-
-                    ++row;
-                }
-                else if (sheet.GetRow(row).GetCell(0).ToString() == "Southwest")
-                {
-                    cmpTemp = retValcomp.GetValueOrDefault("Southwest");
-
-                    ++row;
-                }
-                Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
-                Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
-                mappedVal.Add(retValcust.GetValueOrDefault(sheet.GetRow(row).GetCell(0).ToString()), cmpTemp);
-                String temp = sheet.GetRow(row).GetCell(1).ToString();
-                //int temp_tr = Convert.ToInt32(temp);
-                value.Add(temp);
-                //negValue.Add(temp_tr);
-
-            }
-            var workbook = new XLWorkbook();
-            //create sheet
-            var currentCustomerWorkSheet = workbook.AddWorksheet("Mapping");
-
-            int i = 1;
-            int j = 0;
-            foreach (var keyval in tmpVal)
-            {
-
-                for (int repeat = 1; repeat <= 2; repeat++)
-                {
-                    var currentRow = currentCustomerWorkSheet.Row(i);
-                    if (repeat == 1)
+                    if (sheet.GetRow(row).GetCell(0).ToString() == "3. Gross Profit")
                     {
-                        currentRow.Cell(1).SetValue(keyval.Value);
-                        currentRow.Cell(2).SetValue(keyval.Key);
-                        currentRow.Cell(3).SetValue(40);
-                        currentRow.Cell(4).SetValue(entryDate);
-                        currentRow.Cell(5).SetValue(Convert.ToDouble(value.ElementAt(j)) * -1);
-                        currentRow.Cell(6).SetValue("Accrual");
-                        currentRow.Cell(7).SetValue("Mirror entry");
-
-
-                    }
-                    if (repeat == 2)
-                    {
-                        currentRow.Cell(1).SetValue(keyval.Value);
-                        currentRow.Cell(2).SetValue(keyval.Key);
-                        currentRow.Cell(3).SetValue(172);
-                        currentRow.Cell(4).SetValue(entryDate);
-                        currentRow.Cell(5).SetValue(value.ElementAt(j));
-                        currentRow.Cell(6).SetValue("Accrual");
-                        currentRow.Cell(7).SetValue("Mirror entry");
-                        j++;
+                        break;
                     }
 
-                    i++;
+                    if (sheet.GetRow(row).GetCell(0).ToString() == "2. COGS")
+                    {
+                        ++row;
+                        tmpVal = mappedVal;
+                        mappedVal = new Dictionary<int, int>();
+
+                    }
+                    if (sheet.GetRow(row).GetCell(0).ToString() == "Advertising Consultants")
+                    {
+                        cmpTemp = retValcomp.GetValueOrDefault("Advertising Consultants");
+
+                        ++row;
+                    }
+                    if (sheet.GetRow(row).GetCell(0).ToString() == "California")
+                    {
+                        cmpTemp = retValcomp.GetValueOrDefault("California");
+
+                        ++row;
+                    }
+                    else if (sheet.GetRow(row).GetCell(0).ToString() == "Last Mile Network")
+                    {
+                        cmpTemp = retValcomp.GetValueOrDefault("Last Mile Network");
+
+                        ++row;
+                    }
+                    else if (sheet.GetRow(row).GetCell(0).ToString() == "MDNET")
+                    {
+                        cmpTemp = retValcomp.GetValueOrDefault("MDNET");
+
+                        ++row;
+                    }
+                    else if (sheet.GetRow(row).GetCell(0).ToString() == "Midwest")
+                    {
+                        cmpTemp = retValcomp.GetValueOrDefault("Midwest");
+
+                        ++row;
+                    }
+                    else if (sheet.GetRow(row).GetCell(0).ToString() == "Southeast")
+                    {
+                        cmpTemp = retValcomp.GetValueOrDefault("Southeast");
+
+                        ++row;
+                    }
+                    else if (sheet.GetRow(row).GetCell(0).ToString() == "Southwest")
+                    {
+                        cmpTemp = retValcomp.GetValueOrDefault("Southwest");
+
+                        ++row;
+                    }
+                    Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                    Console.WriteLine(sheet.GetRow(row).GetCell(0).ToString());
+                    mappedVal.Add(retValcust.GetValueOrDefault(sheet.GetRow(row).GetCell(0).ToString()), cmpTemp);
+                    String temp = sheet.GetRow(row).GetCell(numofWeeks).ToString();
+                    //int temp_tr = Convert.ToInt32(temp);
+                    value.Add(temp);
+                    //negValue.Add(temp_tr);
+
                 }
 
-            }
+                int i = 1;
+                int j = 0;
+                foreach (var keyval in tmpVal)
+                {//two for loops one for Revenue and one for Cogs.
 
-            foreach (var keyval in mappedVal)
-            {
-                //for both line items 
-                for (int repeat = 1; repeat <= 2; repeat++)
+                    for (int repeat = 1; repeat <= 2; repeat++)
+                    {
+                        var currentRow = currentCustomerWorkSheet.Row(i);
+                        if (repeat == 1)
+                        {
+                            currentRow.Cell(1).SetValue(keyval.Value);
+                            currentRow.Cell(2).SetValue(keyval.Key);
+                            currentRow.Cell(3).SetValue(40);
+                            currentRow.Cell(4).SetValue(entryDate);
+                            currentRow.Cell(5).SetValue(Convert.ToDouble(value.ElementAt(j)) * -1);
+                            currentRow.Cell(6).SetValue("Accrual");
+                            currentRow.Cell(7).SetValue("Mirror entry");
+
+
+                        }
+                        if (repeat == 2)
+                        {
+                            currentRow.Cell(1).SetValue(keyval.Value);
+                            currentRow.Cell(2).SetValue(keyval.Key);
+                            currentRow.Cell(3).SetValue(172);
+                            currentRow.Cell(4).SetValue(entryDate);
+                            currentRow.Cell(5).SetValue(value.ElementAt(j));
+                            currentRow.Cell(6).SetValue("Accrual");
+                            currentRow.Cell(7).SetValue("Mirror entry");
+                            j++;
+                        }
+
+                        i++;
+                    }
+
+                }
+
+                foreach (var keyval in mappedVal)
                 {
-                    var currentRow = currentCustomerWorkSheet.Row(i);
-                    if (repeat == 1)
+                    //for both line items 
+                    for (int repeat = 1; repeat <= 2; repeat++)
                     {
+                        var currentRow = currentCustomerWorkSheet.Row(i);
+                        if (repeat == 1)
+                        {
 
-                        currentRow.Cell(1).SetValue(keyval.Value);
-                        currentRow.Cell(2).SetValue(keyval.Key);
-                        currentRow.Cell(3).SetValue(202);
-                        currentRow.Cell(4).SetValue(entryDate);
-                        currentRow.Cell(5).SetValue(Convert.ToDouble(value.ElementAt(j)) * -1);
-                        currentRow.Cell(6).SetValue("Accrual");
-                        currentRow.Cell(7).SetValue("Mirror entry");
+                            currentRow.Cell(1).SetValue(keyval.Value);
+                            currentRow.Cell(2).SetValue(keyval.Key);
+                            currentRow.Cell(3).SetValue(202);
+                            currentRow.Cell(4).SetValue(entryDate);
+                            currentRow.Cell(5).SetValue(Convert.ToDouble(value.ElementAt(j)) * -1);
+                            currentRow.Cell(6).SetValue("Accrual");
+                            currentRow.Cell(7).SetValue("Mirror entry");
 
 
+                        }
+                        if (repeat == 2)
+                        {
+                            currentRow.Cell(1).SetValue(keyval.Value);
+                            currentRow.Cell(2).SetValue(keyval.Key);
+                            currentRow.Cell(3).SetValue(98);
+                            currentRow.Cell(4).SetValue(entryDate);
+                            currentRow.Cell(5).SetValue(value.ElementAt(j));
+                            currentRow.Cell(6).SetValue("Accrual");
+                            currentRow.Cell(7).SetValue("Mirror entry");
+                            j++;
+                        }
+
+                        i++;
                     }
-                    if (repeat == 2)
-                    {
-                        currentRow.Cell(1).SetValue(keyval.Value);
-                        currentRow.Cell(2).SetValue(keyval.Key);
-                        currentRow.Cell(3).SetValue(98);
-                        currentRow.Cell(4).SetValue(entryDate);
-                        currentRow.Cell(5).SetValue(value.ElementAt(j));
-                        currentRow.Cell(6).SetValue("Accrual");
-                        currentRow.Cell(7).SetValue("Mirror entry");
-                        j++;
-                    }
 
-                    i++;
                 }
-
             }
 
 
@@ -1973,7 +1987,7 @@ namespace AccrualApp.Controllers
 
                             if (sheetName.Contains("Expense") || sheetName.Contains("IC Carrier Tips")
                                 || sheetName.Contains("IC StackorIns") || sheetName.Contains("Magazine delivery") || sheetName.Contains("Bags")
-                                || sheetName.Contains("Contract Bagging"))
+                                || sheetName.Contains("Contract Bagging") || sheetName.Contains("Incentives"))
                             {
                                 balance = -1 * balance;
                                 foreach (String additionalMemo in additionalMemos)
