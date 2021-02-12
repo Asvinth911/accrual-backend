@@ -69,7 +69,7 @@ namespace AccrualApp.Controllers
 
         [HttpPost]
         [Route("budgetPush")]
-        public IActionResult getCustomerList(IFormFile mappingFile,String regionName)
+        public IActionResult getCustomerList(IFormFile mappingFile)
         {
             Dictionary<String, String> accId = new Dictionary<String, String>();
             
@@ -103,9 +103,9 @@ namespace AccrualApp.Controllers
 
             var mappingWorkbook = new XSSFWorkbook(mappingFile.OpenReadStream());
 
-            ISheet sheet = mappingWorkbook.GetSheetAt(40);
+            ISheet sheet = mappingWorkbook.GetSheetAt(2);
 
-            String regionId = regionName;
+            String regionId = "advertisingconsultants";
 
             String companyName = sheet.GetRow(0).GetCell(0).ToString();
 
@@ -170,7 +170,7 @@ namespace AccrualApp.Controllers
                         }
                         else
                         {
-                            if ((row >= 10 && row <= 29) || (row >= 145 && row <= 150))
+                            if ((row >= 10 && row <= 29) || (row >= 142 && row <= 147))
                             {
                                 String val = sheet.GetRow(row).GetCell(dateIndexStart).ToString();
                                 decimal va = decimal.Parse(val);

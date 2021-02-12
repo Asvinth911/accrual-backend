@@ -30,8 +30,8 @@ namespace AccrualApp
         {
             //services.AddDbContext<aci_databaseContext>(op => op.UseSqlServer("Server=tcp:aci-database-server.database.windows.net,1433;Database=aci_database;User ID=cslabs-admin;Password=Labs@CS#1192;Encrypt=True;TrustServerCertificate=False;"));
 
-             services.AddDbContext<aci_databaseContext>(options => options.UseSqlServer("Server=tcp:aci-database-server.database.windows.net,1433;Initial Catalog=aci_database;Persist Security Info=False;User ID=cslabs-admin;Password=Labs@CS#1192;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"));
-
+            //services.AddDbContext<aci_databaseContext>(options => options.UseSqlServer("Server=tcp:aci-database-server.database.windows.net,1433;Initial Catalog=aci_database;Persist Security Info=False;User ID=cslabs-admin;Password=Labs@CS#1192;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"));
+            services.AddDbContext<aci_databaseContext>(options => options.UseSqlServer("Server=tcp:sql-aci-nucleus-wu.database.windows.net,1433;Initial Catalog=bookkeeper-financial;Persist Security Info=False;User ID=bookkeeper-financial-api;Password=-mWyuYxR2y??EkVTmYp7;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"));
 
             //services.AddTransient<IRepository, TransactionRepository>();
 

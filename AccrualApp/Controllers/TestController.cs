@@ -80,7 +80,8 @@ namespace AccrualApp.Controllers
             return customerList;
         }
 
-        public Dictionary<int, String> getLineitems() {
+        public Dictionary<int, String> getLineitems()
+        {
 
             Dictionary<int, String> lineItems = new Dictionary<int, String>();
 
@@ -127,7 +128,7 @@ namespace AccrualApp.Controllers
                 message = "customers....",
                 data = retVal
             });
-            
+
         }
 
         //api for creating query for revenue and cogs in provisional p&l
@@ -610,7 +611,7 @@ namespace AccrualApp.Controllers
 
             List<String> customerList = new List<String>
                 {
-                    "Quad Logistics Holdings, LLC (Magazines)",      
+                    "Quad Logistics Holdings, LLC (Magazines)",
                 };
 
             Dictionary<String, Dictionary<String, String>> assignMemo = new Dictionary<string, Dictionary<string, string>>();
@@ -646,8 +647,8 @@ namespace AccrualApp.Controllers
                     Console.WriteLine(week + " " + type + " " + memo + " " + balance);
                 }
 
-                    //add headers
-                    int columnCount = 1;
+                //add headers
+                int columnCount = 1;
                 int rowCount = 1;
                 String[] columnList = new String[] { "type", "account_name", "memo", "week", "balance" };
                 var currentRow = currentCustomerWorkSheet.Row(rowCount++);
@@ -661,8 +662,6 @@ namespace AccrualApp.Controllers
                 Dictionary<String, Dictionary<String, Double>> transWeekMemo = new Dictionary<string, Dictionary<string, double>>();
 
                 Dictionary<String, Double> weeklyBalance = new Dictionary<string, double>();
-
-
 
                 //write data to excel
                 foreach (JObject transaction in transactionData)
@@ -1342,19 +1341,19 @@ namespace AccrualApp.Controllers
 
 
             if (regionCustomer.Count == 0 && weeklyBiWeekly.Contains("biweekly"))
-                {
-                    customerList = new List<String>();
-                    customerList.Add("Last Mile Network, LLC");
-                    regionCustomer.Add("lastmilenetwork", customerList);
+            {
+                customerList = new List<String>();
+                customerList.Add("Last Mile Network, LLC");
+                regionCustomer.Add("lastmilenetwork", customerList);
 
-                    customerList = new List<String>
+                customerList = new List<String>
                 {
                     "Cox Media Group Ohio",
                     "St Louis Post-Dispatch"
                 };
-                    regionCustomer.Add("midwest", customerList);
-                }   
-            else if(regionCustomer.Count == 0 && weeklyBiWeekly.Contains("weekly"))
+                regionCustomer.Add("midwest", customerList);
+            }
+            else if (regionCustomer.Count == 0 && weeklyBiWeekly.Contains("weekly"))
             {
                 customerList = new List<String>
                 {
@@ -1435,17 +1434,18 @@ namespace AccrualApp.Controllers
                     var currentCustomerWorkSheet = workbook.AddWorksheet();
 
 
-                    
-                    if (customer == "Last Mile Network, LLC" && weeklyBiWeekly.Contains("biweekly")) {
 
-                        accountNums = new string[] {"8080","8200.2", "8045" };
-                    
+                    if (customer == "Last Mile Network, LLC" && weeklyBiWeekly.Contains("biweekly"))
+                    {
+
+                        accountNums = new string[] { "8080", "8200.2", "8045" };
+
                     }
                     else if (customer == "Last Mile Network, LLC" && weeklyBiWeekly.Contains("weekly"))
                     {
                         accountNums = new string[] { "8200.4", "8200.3", "8200.1", "8040" };
                     }
-                    else 
+                    else
                     {
                         accountNums = new string[] { "8010", "8020", "8040", "8080", "8200.1", "8200.2", "8200.3", "8200.4", "8035", "8060", "8030", "8045" };
                     }
@@ -1473,74 +1473,74 @@ namespace AccrualApp.Controllers
                     //write data to excel
                     foreach (JObject transaction in payrollData)
                     {
-                        if (!transaction.Value<string>("memo").Contains("Capitalize")) 
-                        { 
-                        String accountNum = transaction.Value<string>("account_num");
-                        String accountName = transaction.Value<string>("account_name");
-                        String week = transaction.Value<string>("week");
-                        String type = transaction.Value<string>("type");
-                        String memo = transaction.Value<string>("memo");
-                        double balance = transaction.Value<double>("balance") * -1;
-
-                        String accountNumName = accountNum + ":|:" + accountName;
-
-                        if (memo.ToLower().Contains("401k contributions"))
+                        if (!transaction.Value<string>("memo").Contains("Capitalize"))
                         {
-                            double amountToConsider = 0;
-                            switch (customer)
+                            String accountNum = transaction.Value<string>("account_num");
+                            String accountName = transaction.Value<string>("account_name");
+                            String week = transaction.Value<string>("week");
+                            String type = transaction.Value<string>("type");
+                            String memo = transaction.Value<string>("memo");
+                            double balance = transaction.Value<double>("balance") * -1;
+
+                            String accountNumName = accountNum + ":|:" + accountName;
+
+                            if (memo.ToLower().Contains("401k contributions"))
                             {
-                                case "Last Mile Network, LLC":
-                                    if (weeklyBiWeekly.Contains("biweekly") && memo.ToLower().Contains("jaris"))
-                                    {
+                                double amountToConsider = 0;
+                                switch (customer)
+                                {
+                                    case "Last Mile Network, LLC":
+                                        if (weeklyBiWeekly.Contains("biweekly") && memo.ToLower().Contains("jaris"))
+                                        {
+                                            amountToConsider = balance;
+                                        }
+                                        else if (weeklyBiWeekly.Contains("weekly") && !memo.ToLower().Contains("jaris"))
+                                        {
+                                            amountToConsider = balance;
+                                        }
+                                        break;
+                                    default:
                                         amountToConsider = balance;
-                                    }
-                                    else if (weeklyBiWeekly.Contains("weekly") && !memo.ToLower().Contains("jaris"))
-                                    {
-                                        amountToConsider = balance;
-                                    }
-                                    break;
-                                default:
-                                    amountToConsider = balance;
-                                    break;
-                            }
-                            if (!!!_401kContribution.ContainsKey(accountNumName))
-                            {
-                                _401kContribution.Add(accountNumName, 0.0);
-                            }
+                                        break;
+                                }
+                                if (!!!_401kContribution.ContainsKey(accountNumName))
+                                {
+                                    _401kContribution.Add(accountNumName, 0.0);
+                                }
 
-                            if (amountToConsider > _401kContribution.GetValueOrDefault(accountNumName))
-                            {
-                                _401kContribution[accountNumName] = amountToConsider;
-                            }
+                                if (amountToConsider > _401kContribution.GetValueOrDefault(accountNumName))
+                                {
+                                    _401kContribution[accountNumName] = amountToConsider;
+                                }
 
+                            }
+                            else if (!!!accountNumValue.ContainsKey(accountNumName))
+                            {
+                                accountNumValue.Add(accountNumName, amountToConsider(customer, accountName, balance, weeklyBiWeekly, memo));
+                                rowCount++;
+                            }
+                            else
+                            {
+                                accountNumValue[accountNumName] = accountNumValue.GetValueOrDefault(accountNumName) + amountToConsider(customer, accountName, balance, weeklyBiWeekly, memo);
+                            }//end of _401k if
+
+                            currentRow = currentCustomerWorkSheet.Row(++rowCount);
+                            columnCount = 1;
+                            foreach (String column in columnList)
+                            {
+                                var currCell = currentRow.Cell(columnCount++);
+
+                                switch (column)
+                                {
+                                    case "balance":
+                                        currCell.SetValue<double>(balance);
+                                        break;
+                                    default:
+                                        currCell.SetValue(transaction.Value<string>(column));
+                                        break;
+                                }
+                            }//end of for each data write
                         }
-                        else if (!!!accountNumValue.ContainsKey(accountNumName))
-                        {
-                            accountNumValue.Add(accountNumName, amountToConsider(customer, accountName, balance, weeklyBiWeekly, memo));
-                            rowCount++;
-                        }
-                        else
-                        {
-                            accountNumValue[accountNumName] = accountNumValue.GetValueOrDefault(accountNumName) + amountToConsider(customer, accountName, balance, weeklyBiWeekly, memo);
-                        }//end of _401k if
-
-                        currentRow = currentCustomerWorkSheet.Row(++rowCount);
-                        columnCount = 1;
-                        foreach (String column in columnList)
-                        {
-                            var currCell = currentRow.Cell(columnCount++);
-
-                            switch (column)
-                            {
-                                case "balance":
-                                    currCell.SetValue<double>(balance);
-                                    break;
-                                default:
-                                    currCell.SetValue(transaction.Value<string>(column));
-                                    break;
-                            }
-                        }//end of for each data write
-                    }
 
                     }//end of transaction loop
 
@@ -1621,7 +1621,7 @@ namespace AccrualApp.Controllers
             {
                 case "IT/Mapping/Admin":
 
-                    
+
                     if (accountName.ToLower().Contains("it salaries") && memo.ToLower().Contains("russell thompson"))
                     {
                         amountToConsider = balance * 0.75;
@@ -1737,14 +1737,14 @@ namespace AccrualApp.Controllers
                 customerList.Add("UT San Diego");
                 customerList.Add("Greenleaf Guardian, LLC");
                 customerList.Add("The Downey Patriot");
-                customerList.Add("SDUT HD-Other");
+                customerList.Add("SDUT HD");
                 customerList.Add("San Diego Neighborhood News - East County");
                 customerList.Add("OCR - Rack and Stack");
                 customerList.Add("LA Times Santa Barbara-Barrons");
                 customerList.Add("Outlook/La Canada Flintridge");
-                customerList.Add("SCNG");
+                customerList.Add("La Prensa");
                 customerList.Add("San Bernardino Sun");
-                customerList.Add("San Diego Union-Tribune");
+                customerList.Add("SDUT-TMC");
                 customerList.Add("Valassis");
                 customerList.Add("Hector Borboa - LAT SC");
                 customerList.Add("Teak Santa Barbara");
@@ -1791,21 +1791,51 @@ namespace AccrualApp.Controllers
 
                     switch (customer)
                     {
+                        case "Houston Chronicle Media Group":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "Insert revenue",
+                            "Insurance Services Revenue"
+                            };
+                            break;
+
+                        case "Ventura County Star (HD)":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "Insert revenue",
+                            "Carrier Tips - billed Customer",
+                            "IC Contract Bagging",
+                            "IC Carrier Tips",
+                            "Magazine delivery" //should add magazine revenue if needed 
+                            };
+                            break;
+
                         case "Dallas Morning News, Inc.":
                             accountName = new string[] {"Distribution Contract Revenue",
                             "Delivery Contract Expense",
                             "IC Contract Bagging"
                         };
                             break;
+
+                        case "Shaw Media":
+                            accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
+                            "Carrier Tips - billed Customer",
+                            "IC Contract Incentives",
+                            "IC Stack Out/Insertion Charges",
+                            "IC Carrier Tips"
+                            };
+                            break;
+
                         case "The Downey Patriot":
                             accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
                             "Insert revenue",
                             "Other Income",
-                            "Delivery Contract Expense"
 
                         };
                             break;
-                        case "SDUT HD-Other":
+                        case "SDUT HD":
                             accountName = new string[] {"Distribution Contract Revenue",
                             "Delivery Contract Expense",
                             "IC Stack Out/Insertion Charges",
@@ -1815,9 +1845,9 @@ namespace AccrualApp.Controllers
                             break;
                         case "LAT/OC HD":
                             accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
                             "Carrier Tips - billed Customer",
                             "Insert revenue",
-                            "Delivery Contract Expense",
                             "IC Stack Out/Insertion Charges",
                             "IC Carrier Tips",
                             "Magazine delivery"
@@ -1832,9 +1862,9 @@ namespace AccrualApp.Controllers
                             break;
                         case "San Bernardino Sun":
                             accountName = new string[] {"Distribution Contract Revenue",
+                            "Delivery Contract Expense",
                             "Carrier Tips - billed Customer",
                             "Insert revenue",
-                            "Delivery Contract Expense",
                             "IC Stack Out/Insertion Charges",
                             "IC Carrier Tips",
                             "Magazine delivery"
@@ -1898,6 +1928,12 @@ namespace AccrualApp.Controllers
                             case "Other Income":
                                 sheetName = "Other Income";
                                 break;
+                            case "Insurance Services Revenue":
+                                sheetName = "Insurance Services";
+                                break;
+                            case "IC Contract Incentives":
+                                sheetName = "Incentives";
+                                break;
                         }
 
                         //create sheet
@@ -1939,7 +1975,7 @@ namespace AccrualApp.Controllers
 
                             if (sheetName.Contains("Expense") || sheetName.Contains("IC Carrier Tips")
                                 || sheetName.Contains("IC StackorIns") || sheetName.Contains("Magazine delivery") || sheetName.Contains("Bags")
-                                || sheetName.Contains("Contract Bagging"))
+                                || sheetName.Contains("Contract Bagging")|| sheetName.Contains("Incentives"))
                             {
                                 balance = -1 * balance;
                                 foreach (String additionalMemo in additionalMemos)
@@ -2331,15 +2367,15 @@ namespace AccrualApp.Controllers
                 customerList.Add("UT San Diego");
                 customerList.Add("Greenleaf Guardian, LLC");
                 customerList.Add("The Downey Patriot");
-                customerList.Add("SDUT HD-Other");
+                customerList.Add("SDUT HD");
                 customerList.Add("San Diego Neighborhood News - East County");
                 customerList.Add("OCR - Rack and Stack");
                 customerList.Add("LA Times Santa Barbara-Barrons");
                 customerList.Add("Outlook/La Canada Flintridge");
-                customerList.Add("SCNG");
+                customerList.Add("La Prensa");
                 customerList.Add("San Bernardino Sun");
                 //customerList.Add("The Press Enterprises Company- Riverside");
-                customerList.Add("San Diego Union-Tribune");
+                customerList.Add("SDUT-TMC");
                 customerList.Add("Valassis");
                 customerList.Add("Larchmont Chronicle");
                 customerList.Add("San Pedro Today");
@@ -2377,15 +2413,16 @@ namespace AccrualApp.Controllers
                     var workbook = new XLWorkbook();
 
                     _logger.LogInformation("Customer:" + customer);
-                    String[] accountName = new string[] {"Distribution Contract Revenue","Bag/Band Sales - Customers",
-                        "Carrier Tips - billed Customer","Additional weight charge","Magazine Revenue","Insert revenue","News Stand Sales",
-                        "Equipment Rental Revenue","Insurance Services Revenue","Other Income","Sales-Service",
-                        "Delivery Contract Expense","Plastic Bags, Paper & Supplies","Contract Redelivery",
-                        "Parcel delivery","Insertion Contract Charges","3rd Party Warehousing","IC Other Expense",
-                        "IC Stack Out/Insertion Charges","Newspapers Purchased","IC Carrier Tips",
-                        "Magazine delivery","IC Truck Hauling Expense","IC Contract Bagging","IC Contract Incentives",
-                        "IC Contract Penalties","Accident Ins. - Independents"};
+                    /* String[] accountName = new string[] {"Distribution Contract Revenue","Bag/Band Sales - Customers",
+                         "Carrier Tips - billed Customer","Additional weight charge","Magazine Revenue","Insert revenue","News Stand Sales",
+                         "Equipment Rental Revenue","Insurance Services Revenue","Other Income","Sales-Service",
+                         "Delivery Contract Expense","Plastic Bags, Paper & Supplies","Contract Redelivery",
+                         "Parcel delivery","Insertion Contract Charges","3rd Party Warehousing","IC Other Expense",
+                         "IC Stack Out/Insertion Charges","Newspapers Purchased","IC Carrier Tips",
+                         "Magazine delivery","IC Truck Hauling Expense","IC Contract Bagging","IC Contract Incentives",
+                         "IC Contract Penalties","Accident Ins. - Independents"};*/
 
+                    String[] accountName = new string[] { "Distribution Contract Revenue", "Delivery Contract Expense" };
 
 
 
@@ -3253,7 +3290,7 @@ namespace AccrualApp.Controllers
             return transactionData;
         }
 
-            public JArray getHoyLatData(String accountNum, String companyId, String customerName, String[] transactionType, DateTime startDate, DateTime endDate)
+        public JArray getHoyLatData(String accountNum, String companyId, String customerName, String[] transactionType, DateTime startDate, DateTime endDate)
         {
             JArray transactionData = new JArray() as dynamic;
 
